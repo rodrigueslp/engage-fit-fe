@@ -1,4 +1,4 @@
-import { Gift, Plus, RefreshCw, Target, Trophy } from 'lucide-react';
+import { Gift, Plus, Power, RefreshCw, Save, Target, Trophy } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -22,6 +22,7 @@ export function CampaignsPage() {
   const [loading, setLoading] = useState(true);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [savingDetails, setSavingDetails] = useState(false);
   const [error, setError] = useState('');
 
   const [name, setName] = useState('');
@@ -33,6 +34,15 @@ export function CampaignsPage() {
   const [rewardName, setRewardName] = useState('');
   const [rewardDescription, setRewardDescription] = useState('');
   const [rewardQuantity, setRewardQuantity] = useState('100');
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editStartDate, setEditStartDate] = useState('');
+  const [editEndDate, setEditEndDate] = useState('');
+  const [editWellhubGoal, setEditWellhubGoal] = useState('12');
+  const [editTotalpassGoal, setEditTotalpassGoal] = useState('12');
+  const [editRewardName, setEditRewardName] = useState('');
+  const [editRewardDescription, setEditRewardDescription] = useState('');
+  const [editRewardQuantity, setEditRewardQuantity] = useState('100');
 
   const selectedCampaign = useMemo(
     () => campaigns.find((campaign) => campaign.id === selectedCampaignId),
@@ -77,6 +87,25 @@ export function CampaignsPage() {
     loadDetails(selectedCampaignId);
   }, [selectedCampaignId]);
 
+  useEffect(() => {
+    if (!selectedCampaign) return;
+    setEditName(selectedCampaign.name);
+    setEditDescription(selectedCampaign.description);
+    setEditStartDate(selectedCampaign.start_date);
+    setEditEndDate(selectedCampaign.end_date);
+  }, [selectedCampaign]);
+
+  useEffect(() => {
+    const wellhub = details.goals.find((goal) => goal.source === 'wellhub');
+    const totalpass = details.goals.find((goal) => goal.source === 'totalpass');
+    const reward = details.rewards[0];
+    setEditWellhubGoal(String(wellhub?.target_checkins ?? 12));
+    setEditTotalpassGoal(String(totalpass?.target_checkins ?? 12));
+    setEditRewardName(reward?.name ?? '');
+    setEditRewardDescription(reward?.description ?? '');
+    setEditRewardQuantity(String(reward?.quantity ?? 100));
+  }, [details.goals, details.rewards]);
+
   async function create(event: FormEvent) {
     event.preventDefault();
     setError('');
@@ -115,6 +144,97 @@ export function CampaignsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao recalcular campanha');
       setDetailsLoading(false);
+    }
+  }
+
+  async function saveCampaignBasics(event: FormEvent) {
+    event.preventDefault();
+    if (!selectedCampaign) return;
+    setError('');
+    setSavingDetails(true);
+    try {
+      await api.updateCampaign(selectedCampaign.id, {
+        name: editName,
+        description: editDescription,
+        start_date: editStartDate,
+        end_date: editEndDate,
+        active: selectedCampaign.active,
+      });
+      loadCampaigns(selectedCampaign.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao salvar campanha');
+    } finally {
+      setSavingDetails(false);
+    }
+  }
+
+  async function saveCampaignGoals(event: FormEvent) {
+    event.preventDefault();
+    if (!selectedCampaign) return;
+    setError('');
+    setSavingDetails(true);
+    try {
+      await Promise.all([
+        upsertGoal(selectedCampaign.id, 'wellhub', Number(editWellhubGoal)),
+        upsertGoal(selectedCampaign.id, 'totalpass', Number(editTotalpassGoal)),
+      ]);
+      loadDetails(selectedCampaign.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao salvar metas');
+    } finally {
+      setSavingDetails(false);
+    }
+  }
+
+  async function upsertGoal(campaignId: string, source: 'wellhub' | 'totalpass', targetCheckins: number) {
+    const existing = details.goals.find((goal) => goal.source === source);
+    if (existing) {
+      return api.updateCampaignGoal(campaignId, existing.id, { source, target_checkins: targetCheckins });
+    }
+    return api.createCampaignGoal(campaignId, { source, target_checkins: targetCheckins });
+  }
+
+  async function saveCampaignReward(event: FormEvent) {
+    event.preventDefault();
+    if (!selectedCampaign) return;
+    setError('');
+    setSavingDetails(true);
+    try {
+      const payload = { name: editRewardName, description: editRewardDescription, quantity: Number(editRewardQuantity) };
+      if (details.rewards[0]) {
+        await api.updateReward(details.rewards[0].id, payload);
+      } else {
+        await api.createReward(selectedCampaign.id, payload);
+      }
+      loadDetails(selectedCampaign.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao salvar brinde');
+    } finally {
+      setSavingDetails(false);
+    }
+  }
+
+  async function toggleCampaignActive() {
+    if (!selectedCampaign) return;
+    setError('');
+    setSavingDetails(true);
+    try {
+      if (selectedCampaign.active) {
+        await api.closeCampaign(selectedCampaign.id);
+      } else {
+        await api.updateCampaign(selectedCampaign.id, {
+          name: selectedCampaign.name,
+          description: selectedCampaign.description,
+          start_date: selectedCampaign.start_date,
+          end_date: selectedCampaign.end_date,
+          active: true,
+        });
+      }
+      loadCampaigns(selectedCampaign.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao alterar status da campanha');
+    } finally {
+      setSavingDetails(false);
     }
   }
 
@@ -227,6 +347,33 @@ export function CampaignsPage() {
             </CardContent>
           </Card>
 
+          <CampaignEditPanel
+            campaign={selectedCampaign}
+            saving={savingDetails}
+            name={editName}
+            description={editDescription}
+            startDate={editStartDate}
+            endDate={editEndDate}
+            wellhubGoal={editWellhubGoal}
+            totalpassGoal={editTotalpassGoal}
+            rewardName={editRewardName}
+            rewardDescription={editRewardDescription}
+            rewardQuantity={editRewardQuantity}
+            onNameChange={setEditName}
+            onDescriptionChange={setEditDescription}
+            onStartDateChange={setEditStartDate}
+            onEndDateChange={setEditEndDate}
+            onWellhubGoalChange={setEditWellhubGoal}
+            onTotalpassGoalChange={setEditTotalpassGoal}
+            onRewardNameChange={setEditRewardName}
+            onRewardDescriptionChange={setEditRewardDescription}
+            onRewardQuantityChange={setEditRewardQuantity}
+            onSaveBasics={saveCampaignBasics}
+            onSaveGoals={saveCampaignGoals}
+            onSaveReward={saveCampaignReward}
+            onToggleActive={toggleCampaignActive}
+          />
+
           <CampaignOperationalPanel
             campaign={selectedCampaign}
             details={details}
@@ -239,6 +386,128 @@ export function CampaignsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function CampaignEditPanel({
+  campaign,
+  saving,
+  name,
+  description,
+  startDate,
+  endDate,
+  wellhubGoal,
+  totalpassGoal,
+  rewardName,
+  rewardDescription,
+  rewardQuantity,
+  onNameChange,
+  onDescriptionChange,
+  onStartDateChange,
+  onEndDateChange,
+  onWellhubGoalChange,
+  onTotalpassGoalChange,
+  onRewardNameChange,
+  onRewardDescriptionChange,
+  onRewardQuantityChange,
+  onSaveBasics,
+  onSaveGoals,
+  onSaveReward,
+  onToggleActive,
+}: {
+  campaign?: Campaign;
+  saving: boolean;
+  name: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  wellhubGoal: string;
+  totalpassGoal: string;
+  rewardName: string;
+  rewardDescription: string;
+  rewardQuantity: string;
+  onNameChange: (value: string) => void;
+  onDescriptionChange: (value: string) => void;
+  onStartDateChange: (value: string) => void;
+  onEndDateChange: (value: string) => void;
+  onWellhubGoalChange: (value: string) => void;
+  onTotalpassGoalChange: (value: string) => void;
+  onRewardNameChange: (value: string) => void;
+  onRewardDescriptionChange: (value: string) => void;
+  onRewardQuantityChange: (value: string) => void;
+  onSaveBasics: (event: FormEvent) => void;
+  onSaveGoals: (event: FormEvent) => void;
+  onSaveReward: (event: FormEvent) => void;
+  onToggleActive: () => void;
+}) {
+  if (!campaign) {
+    return (
+      <Card>
+        <CardContent>
+          <EmptyState message="Selecione uma campanha para editar" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-base font-bold text-slate-950">Editar campanha</h2>
+            <p className="text-sm text-slate-500">Ajuste dados, metas, brinde e status operacional.</p>
+          </div>
+          <Button type="button" variant="secondary" onClick={onToggleActive} disabled={saving}>
+            <Power className="h-4 w-4" />
+            {campaign.active ? 'Encerrar' : 'Reativar'}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <form className="grid gap-3 md:grid-cols-2" onSubmit={onSaveBasics}>
+          <Input placeholder="Nome da campanha" value={name} onChange={(event) => onNameChange(event.target.value)} required />
+          <Textarea placeholder="Descricao" value={description} onChange={(event) => onDescriptionChange(event.target.value)} />
+          <Input type="date" value={startDate} onChange={(event) => onStartDateChange(event.target.value)} required />
+          <Input type="date" value={endDate} onChange={(event) => onEndDateChange(event.target.value)} required />
+          <div className="md:col-span-2">
+            <Button disabled={saving}>
+              <Save className="h-4 w-4" />
+              Salvar dados
+            </Button>
+          </div>
+        </form>
+
+        <form className="grid gap-3 md:grid-cols-[1fr_1fr_auto]" onSubmit={onSaveGoals}>
+          <label className="space-y-1 text-xs font-semibold text-slate-500">
+            Meta Wellhub
+            <Input min="1" type="number" value={wellhubGoal} onChange={(event) => onWellhubGoalChange(event.target.value)} required />
+          </label>
+          <label className="space-y-1 text-xs font-semibold text-slate-500">
+            Meta TotalPass
+            <Input min="1" type="number" value={totalpassGoal} onChange={(event) => onTotalpassGoalChange(event.target.value)} required />
+          </label>
+          <div className="flex items-end">
+            <Button disabled={saving}>
+              <Save className="h-4 w-4" />
+              Salvar metas
+            </Button>
+          </div>
+        </form>
+
+        <form className="grid gap-3 md:grid-cols-[1fr_1fr_120px_auto]" onSubmit={onSaveReward}>
+          <Input placeholder="Nome do brinde" value={rewardName} onChange={(event) => onRewardNameChange(event.target.value)} required />
+          <Input placeholder="Descricao do brinde" value={rewardDescription} onChange={(event) => onRewardDescriptionChange(event.target.value)} />
+          <Input min="1" type="number" value={rewardQuantity} onChange={(event) => onRewardQuantityChange(event.target.value)} required />
+          <div className="flex items-end">
+            <Button disabled={saving}>
+              <Save className="h-4 w-4" />
+              Salvar brinde
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
 

@@ -10,7 +10,7 @@ export function SettingsPage() {
   const [boxName, setBoxName] = useState('');
   const [riskInactiveDays, setRiskInactiveDays] = useState(7);
   const [riskMessageCooldownDays, setRiskMessageCooldownDays] = useState(14);
-  const [provider, setProvider] = useState<'twilio' | 'evolution' | 'meta_cloud'>('twilio');
+  const [provider, setProvider] = useState<'twilio' | 'meta_cloud'>('twilio');
   const [baseUrl, setBaseUrl] = useState('');
   const [instanceName, setInstanceName] = useState('');
   const [apiKey, setApiKey] = useState('');
@@ -181,7 +181,7 @@ export function SettingsPage() {
           <div className="mb-4 grid gap-3 md:grid-cols-3">
             <div className="rounded-md border border-slate-200 px-3 py-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Provedor selecionado</p>
-              <p className="mt-1 text-sm font-bold text-slate-950">{provider === 'twilio' ? 'Twilio WhatsApp' : provider === 'meta_cloud' ? 'Meta Cloud API' : 'Evolution API'}</p>
+              <p className="mt-1 text-sm font-bold text-slate-950">{provider === 'twilio' ? 'Twilio WhatsApp' : 'Meta Cloud API'}</p>
             </div>
             <div className="rounded-md border border-slate-200 px-3 py-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Credencial</p>
@@ -201,32 +201,31 @@ export function SettingsPage() {
               <select
                 className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
                 value={provider}
-                onChange={(event) => markChanged(() => setProvider(event.target.value as 'twilio' | 'evolution' | 'meta_cloud'))}
+                onChange={(event) => markChanged(() => setProvider(event.target.value as 'twilio' | 'meta_cloud'))}
               >
                 <option value="twilio">Twilio WhatsApp</option>
                 <option value="meta_cloud">Meta Cloud API</option>
-                <option value="evolution">Evolution API</option>
               </select>
             </label>
             <label className="space-y-1 text-sm font-semibold text-slate-600">
               Base URL
               <Input
-                placeholder={provider === 'twilio' ? 'https://api.twilio.com' : provider === 'meta_cloud' ? 'https://graph.facebook.com/v20.0' : 'https://evolution.exemplo.com'}
+                placeholder={provider === 'twilio' ? 'https://api.twilio.com' : 'https://graph.facebook.com/v20.0'}
                 value={baseUrl}
                 onChange={(event) => markChanged(() => setBaseUrl(event.target.value))}
               />
             </label>
             <label className="space-y-1 text-sm font-semibold text-slate-600">
-              {provider === 'twilio' ? 'Remetente WhatsApp ou Messaging Service SID' : provider === 'meta_cloud' ? 'Phone number ID' : 'Instancia'}
+              {provider === 'twilio' ? 'Remetente WhatsApp ou Messaging Service SID' : 'Phone number ID'}
               <Input
-                placeholder={provider === 'twilio' ? 'whatsapp:+14155238886 ou MG...' : provider === 'meta_cloud' ? '123456789012345' : 'crossfit-alados'}
+                placeholder={provider === 'twilio' ? 'whatsapp:+14155238886 ou MG...' : '123456789012345'}
                 value={instanceName}
                 onChange={(event) => markChanged(() => setInstanceName(event.target.value))}
                 required
               />
             </label>
             <label className="space-y-1 text-sm font-semibold text-slate-600">
-              {provider === 'twilio' ? 'Account SID:Auth Token' : provider === 'meta_cloud' ? 'Access token' : 'API key'}
+              {provider === 'twilio' ? 'Account SID:Auth Token' : 'Access token'}
               <Input
                 type="password"
                 placeholder={hasSavedCredential ? 'Credencial cadastrada; preencha apenas para trocar' : provider === 'twilio' ? 'AC...:token' : '••••••••'}

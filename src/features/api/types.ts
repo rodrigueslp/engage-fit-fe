@@ -134,7 +134,7 @@ export type ImportHistory = {
 export type WhatsappSettings = {
   id: string;
   box_id: string;
-  provider: 'twilio' | 'evolution' | 'meta_cloud';
+  provider: 'twilio' | 'meta_cloud';
   base_url: string;
   instance_name: string;
   has_api_key: boolean;
@@ -152,9 +152,18 @@ export type MessageTemplate = {
 export type MessageCampaign = {
   id: string;
   name: string;
+  campaign_id: string;
   audience: 'near_goal' | 'almost_there' | 'achieved' | 'inactive' | 'all';
   template_id: string;
   sent_at?: string;
+};
+
+export type MessageCampaignPreview = {
+  total: number;
+  body: string;
+  student_id?: string;
+  student_name?: string;
+  phone?: string;
 };
 
 export type SendMessageCampaignResult = {

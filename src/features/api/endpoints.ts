@@ -10,6 +10,7 @@ import type {
   ImportHistory,
   LoginResponse,
   MessageCampaign,
+  MessageCampaignPreview,
   MessageRecipient,
   MonthlyFrequencyReport,
   SendMessageCampaignResult,
@@ -62,10 +63,24 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  updateCampaign: (campaignId: string, payload: Partial<Campaign>) =>
+    apiRequest<Campaign>(`/api/v1/campaigns/${campaignId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  closeCampaign: (campaignId: string) =>
+    apiRequest<void>(`/api/v1/campaigns/${campaignId}/close`, {
+      method: 'PATCH',
+    }),
   campaignGoals: (campaignId: string) => apiRequest<CampaignGoal[]>(`/api/v1/campaigns/${campaignId}/goals`),
   createCampaignGoal: (campaignId: string, payload: { source: string; target_checkins: number }) =>
     apiRequest<CampaignGoal>(`/api/v1/campaigns/${campaignId}/goals`, {
       method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updateCampaignGoal: (campaignId: string, goalId: string, payload: { source: string; target_checkins: number }) =>
+    apiRequest<CampaignGoal>(`/api/v1/campaigns/${campaignId}/goals/${goalId}`, {
+      method: 'PUT',
       body: JSON.stringify(payload),
     }),
   campaignProgress: (campaignId: string) => apiRequest<CampaignProgress[]>(`/api/v1/campaigns/${campaignId}/progress`),
@@ -79,13 +94,18 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  updateReward: (rewardId: string, payload: { name: string; description: string; quantity: number }) =>
+    apiRequest<Reward>(`/api/v1/rewards/${rewardId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
   whatsappSettings: () => apiRequest<WhatsappSettings>('/api/v1/whatsapp/settings'),
-  updateWhatsappSettings: (payload: { provider: 'twilio' | 'evolution' | 'meta_cloud'; base_url: string; instance_name: string; api_key: string; enabled: boolean }) =>
+  updateWhatsappSettings: (payload: { provider: 'twilio' | 'meta_cloud'; base_url: string; instance_name: string; api_key: string; enabled: boolean }) =>
     apiRequest<WhatsappSettings>('/api/v1/whatsapp/settings', {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
-  testWhatsappSettings: (payload?: { provider: 'twilio' | 'evolution' | 'meta_cloud'; base_url: string; instance_name: string; api_key: string; enabled: boolean }) =>
+  testWhatsappSettings: (payload?: { provider: 'twilio' | 'meta_cloud'; base_url: string; instance_name: string; api_key: string; enabled: boolean }) =>
     apiRequest<void>('/api/v1/whatsapp/settings/test', {
       method: 'POST',
       body: payload ? JSON.stringify(payload) : undefined,
@@ -96,12 +116,18 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  updateTemplate: (templateId: string, payload: { name: string; content: string; content_sid: string }) =>
+    apiRequest<MessageTemplate>(`/api/v1/message-templates/${templateId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
   messageCampaigns: () => apiRequest<MessageCampaign[]>('/api/v1/message-campaigns'),
-  createMessageCampaign: (payload: { name: string; audience: string; template_id: string }) =>
+  createMessageCampaign: (payload: { name: string; campaign_id: string; audience: string; template_id: string }) =>
     apiRequest<MessageCampaign>('/api/v1/message-campaigns', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  messageCampaignPreview: (campaignId: string) => apiRequest<MessageCampaignPreview>(`/api/v1/message-campaigns/${campaignId}/preview`),
   sendMessageCampaign: (campaignId: string) =>
     apiRequest<SendMessageCampaignResult>(`/api/v1/message-campaigns/${campaignId}/send`, {
       method: 'POST',
