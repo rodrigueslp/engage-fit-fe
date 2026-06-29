@@ -1,4 +1,4 @@
-import { BarChart3, Dumbbell, Gift, MessageCircle, Settings, Target, Upload, Users } from 'lucide-react';
+import { BarChart3, Dumbbell, Gift, Mail, MessageCircle, RefreshCw, Settings, Target, Upload, Users } from 'lucide-react';
 import type { PageKey } from '../../app/App';
 
 const items = [
@@ -8,6 +8,8 @@ const items = [
   { key: 'students', label: 'Alunos', icon: Users },
   { key: 'imports', label: 'Importacoes', icon: Upload },
   { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
+  { key: 'email', label: 'E-mail', icon: Mail },
+  { key: 'automation', label: 'Automacao', icon: RefreshCw },
   { key: 'reports', label: 'Relatorios', icon: Dumbbell },
   { key: 'settings', label: 'Configuracoes', icon: Settings },
 ] as const;

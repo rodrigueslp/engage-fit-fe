@@ -1,0 +1,228 @@
+import { Play, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { FormEvent, useEffect, useState } from 'react';
+import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
+import { StatusBadge } from '../../components/common/StatusBadge';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
+import { api } from '../../features/api/endpoints';
+import type { AutomationRun, AutomationSchedule } from '../../features/api/types';
+
+const weekDays = [
+  { value: '1', label: 'Seg' },
+  { value: '2', label: 'Ter' },
+  { value: '3', label: 'Qua' },
+  { value: '4', label: 'Qui' },
+  { value: '5', label: 'Sex' },
+  { value: '6', label: 'Sab' },
+  { value: '0', label: 'Dom' },
+];
+
+const modeLabels: Record<AutomationSchedule['mode'], string> = {
+  full_daily: 'Recalcular e enviar tudo',
+  recalculate_only: 'Somente recalcular',
+  send_almost_there: 'Enviar falta pouco',
+  send_achieved: 'Enviar meta atingida',
+  send_inactive: 'Enviar alunos em risco',
+};
+
+const defaultForm = {
+  name: '',
+  mode: 'full_daily' as AutomationSchedule['mode'],
+  run_time: '08:00',
+  timezone: 'America/Sao_Paulo',
+  days_of_week: '1,2,3,4,5',
+  allow_resend: false,
+  enabled: true,
+};
+
+export function AutomationPage() {
+  const [runs, setRuns] = useState<AutomationRun[]>([]);
+  const [schedules, setSchedules] = useState<AutomationSchedule[]>([]);
+  const [form, setForm] = useState(defaultForm);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [status, setStatus] = useState('');
+  const [runningScheduleId, setRunningScheduleId] = useState('');
+
+  function load() {
+    setLoading(true);
+    setError('');
+    Promise.all([api.automationSchedules(), api.automationRuns()])
+      .then(([schedules, runs]) => {
+        setSchedules(schedules);
+        setRuns(runs);
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar automacao'))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(load, []);
+
+  async function createSchedule(event: FormEvent) {
+    event.preventDefault();
+    setError('');
+    setStatus('');
+    try {
+      await api.createAutomationSchedule(form);
+      setForm(defaultForm);
+      setStatus('Rotina criada.');
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao criar rotina');
+    }
+  }
+
+  async function toggleSchedule(schedule: AutomationSchedule) {
+    setError('');
+    try {
+      await api.updateAutomationSchedule(schedule.id, { ...schedule, enabled: !schedule.enabled });
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao atualizar rotina');
+    }
+  }
+
+  async function deleteSchedule(scheduleId: string) {
+    setError('');
+    try {
+      await api.deleteAutomationSchedule(scheduleId);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao remover rotina');
+    }
+  }
+
+  async function runNow(scheduleId: string) {
+    setError('');
+    setStatus('');
+    setRunningScheduleId(scheduleId);
+    try {
+      const run = await api.runAutomationScheduleNow(scheduleId);
+      setStatus(`Execucao finalizada: ${statusLabel(run.status)}. Mensagens enviadas: ${run.sent_messages}. Falhas: ${run.failed_messages}.`);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao executar rotina');
+    } finally {
+      setRunningScheduleId('');
+    }
+  }
+
+  function toggleDay(day: string) {
+    const current = new Set(form.days_of_week.split(',').filter(Boolean));
+    if (current.has(day)) current.delete(day); else current.add(day);
+    setForm((value) => ({ ...value, days_of_week: Array.from(current).sort().join(',') }));
+  }
+
+  if (loading) return <LoadingState label="Carregando automacao" />;
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-950">Automacao</h1>
+          <p className="text-sm text-slate-500">Rotinas automaticas de recalculo e disparo de WhatsApp</p>
+        </div>
+        <Button type="button" variant="secondary" onClick={load}><RefreshCw className="h-4 w-4" />Atualizar</Button>
+      </div>
+      {error && <ErrorState message={error} />}
+      {status && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{status}</div>}
+
+      <div className="grid gap-5 xl:grid-cols-[420px_1fr]">
+        <Card>
+          <CardHeader><h2 className="text-base font-bold text-slate-950">Nova rotina</h2></CardHeader>
+          <CardContent>
+            <form className="space-y-3" onSubmit={createSchedule}>
+              <Input placeholder="Nome da rotina" value={form.name} onChange={(event) => setForm((value) => ({ ...value, name: event.target.value }))} required />
+              <select className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm" value={form.mode} onChange={(event) => setForm((value) => ({ ...value, mode: event.target.value as AutomationSchedule['mode'] }))}>
+                {Object.entries(modeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input type="time" value={form.run_time} onChange={(event) => setForm((value) => ({ ...value, run_time: event.target.value }))} required />
+                <Input value={form.timezone} onChange={(event) => setForm((value) => ({ ...value, timezone: event.target.value }))} required />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {weekDays.map((day) => {
+                  const active = form.days_of_week.split(',').includes(day.value);
+                  return <button key={day.value} type="button" className={`h-8 rounded-md border px-3 text-xs font-bold ${active ? 'border-accent bg-accent-soft text-accent-dark' : 'border-slate-200 bg-white text-slate-500'}`} onClick={() => toggleDay(day.value)}>{day.label}</button>;
+                })}
+              </div>
+              <label className="flex items-center gap-2 text-sm font-semibold text-slate-600"><input type="checkbox" checked={form.allow_resend} onChange={(event) => setForm((value) => ({ ...value, allow_resend: event.target.checked }))} />Reenviar campanhas ja enviadas</label>
+              <label className="flex items-center gap-2 text-sm font-semibold text-slate-600"><input type="checkbox" checked={form.enabled} onChange={(event) => setForm((value) => ({ ...value, enabled: event.target.checked }))} />Rotina ativa</label>
+              <Button><Plus className="h-4 w-4" />Criar rotina</Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><h2 className="text-base font-bold text-slate-950">Rotinas automaticas</h2></CardHeader>
+          <CardContent className="space-y-3">
+            {schedules.length === 0 ? <EmptyState message="Nenhuma rotina configurada" /> : schedules.map((schedule) => (
+              <div key={schedule.id} className="rounded-md border border-slate-100 p-3">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="font-semibold text-slate-950">{schedule.name}</p>
+                    <p className="text-sm text-slate-500">{modeLabels[schedule.mode]} · {schedule.run_time} · {daysLabel(schedule.days_of_week)}</p>
+                    <p className="text-xs font-semibold text-slate-400">{schedule.last_run_at ? `Ultima execucao: ${formatDateTime(schedule.last_run_at)}` : 'Ainda nao executada'}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <StatusBadge value={schedule.enabled ? 'active' : 'inactive'} label={schedule.enabled ? 'Ativa' : 'Pausada'} />
+                    <Button type="button" variant="secondary" onClick={() => runNow(schedule.id)} disabled={runningScheduleId === schedule.id}><Play className="h-4 w-4" />{runningScheduleId === schedule.id ? 'Rodando' : 'Executar'}</Button>
+                    <Button type="button" variant="secondary" onClick={() => toggleSchedule(schedule)}>{schedule.enabled ? 'Pausar' : 'Ativar'}</Button>
+                    <Button type="button" variant="secondary" onClick={() => deleteSchedule(schedule.id)}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader><h2 className="text-base font-bold text-slate-950">Execucoes recentes</h2></CardHeader>
+        <CardContent className="space-y-3">
+          {runs.length === 0 ? <EmptyState message="Nenhuma automacao registrada" /> : runs.map((run) => (
+            <div key={run.id} className="rounded-md border border-slate-100 p-3">
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="font-semibold text-slate-950">{formatDateTime(run.started_at)}</p>
+                  <p className="text-sm text-slate-500">{run.filename ? `${run.source} · ${run.filename}` : 'Sem arquivo importado'}</p>
+                </div>
+                <StatusBadge value={run.status === 'success' ? 'active' : run.status === 'failed' ? 'warning' : 'inactive'} label={statusLabel(run.status)} />
+              </div>
+              <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2 xl:grid-cols-5">
+                <Metric label="Importacao" value={run.imported ? 'Sim' : 'Nao'} />
+                <Metric label="Campanhas" value={run.recalculated_campaigns} />
+                <Metric label="Mensagens" value={run.sent_messages} />
+                <Metric label="Falhas" value={run.failed_messages} />
+                <Metric label="Ignoradas" value={run.skipped_message_campaigns} />
+              </div>
+              {run.error_message && <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{run.error_message}</p>}
+              {run.finished_at && <p className="mt-2 text-xs font-semibold text-slate-400">Finalizada em {formatDateTime(run.finished_at)}</p>}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string | number }) {
+  return <div className="rounded-md bg-slate-50 px-3 py-2"><p className="text-xs font-semibold text-slate-400">{label}</p><p className="font-bold text-slate-800">{value}</p></div>;
+}
+
+function statusLabel(status: AutomationRun['status']) {
+  if (status === 'success') return 'Sucesso';
+  if (status === 'failed') return 'Falhou';
+  return 'Executando';
+}
+
+function daysLabel(days: string) {
+  const selected = days.split(',').filter(Boolean);
+  if (selected.length === 7) return 'Todos os dias';
+  return weekDays.filter((day) => selected.includes(day.value)).map((day) => day.label).join(', ');
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
+}

@@ -3,8 +3,10 @@ import { AppLayout } from '../components/layout/AppLayout';
 import { clearToken, getToken } from '../features/api/client';
 import { api } from '../features/api/endpoints';
 import type { Box, CurrentUser } from '../features/api/types';
+import { AutomationPage } from '../pages/automation/AutomationPage';
 import { CampaignsPage } from '../pages/campaigns/CampaignsPage';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
+import { EmailPage } from '../pages/email/EmailPage';
 import { ImportsPage } from '../pages/imports/ImportsPage';
 import { LoginPage } from '../pages/login/LoginPage';
 import { ReportsPage } from '../pages/reports/ReportsPage';
@@ -14,9 +16,9 @@ import { StudentsPage } from '../pages/students/StudentsPage';
 import { WhatsappPage } from '../pages/whatsapp/WhatsappPage';
 import { LoadingState } from '../components/common/State';
 
-export type PageKey = 'dashboard' | 'campaigns' | 'rewards' | 'students' | 'imports' | 'whatsapp' | 'reports' | 'settings';
+export type PageKey = 'dashboard' | 'campaigns' | 'rewards' | 'students' | 'imports' | 'whatsapp' | 'email' | 'automation' | 'reports' | 'settings';
 
-const pageKeys: PageKey[] = ['dashboard', 'campaigns', 'rewards', 'students', 'imports', 'whatsapp', 'reports', 'settings'];
+const pageKeys: PageKey[] = ['dashboard', 'campaigns', 'rewards', 'students', 'imports', 'whatsapp', 'email', 'automation', 'reports', 'settings'];
 
 function pageFromHash(): PageKey {
   const hashPage = window.location.hash.replace(/^#\/?/, '');
@@ -91,6 +93,8 @@ export function App() {
       {page === 'students' && <StudentsPage />}
       {page === 'imports' && <ImportsPage />}
       {page === 'whatsapp' && <WhatsappPage />}
+      {page === 'email' && <EmailPage />}
+      {page === 'automation' && <AutomationPage />}
       {page === 'reports' && <ReportsPage />}
       {page === 'settings' && <SettingsPage />}
     </AppLayout>

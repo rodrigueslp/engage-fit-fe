@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, CheckCircle2, Gift, Target, Users } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle2, Gift, MessageCircle, RefreshCw, Target, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
 import { KpiCard } from '../../components/common/KpiCard';
@@ -67,6 +67,13 @@ export function DashboardPage() {
         <KpiCard label="Brindes" value={summary?.pending_rewards ?? 0} icon={Gift} />
       </div>
 
+      <div className="grid gap-3 md:grid-cols-4">
+        <ShortcutButton label="Brindes" description="Baixar entregas pendentes" icon={Gift} page="rewards" />
+        <ShortcutButton label="Relatorios" description="Exportar recortes operacionais" icon={CheckCircle2} page="reports" />
+        <ShortcutButton label="WhatsApp" description="Disparos e falhas recentes" icon={MessageCircle} page="whatsapp" />
+        <ShortcutButton label="Automacao" description="Historico da rotina diaria" icon={RefreshCw} page="automation" />
+      </div>
+
       <div className="grid gap-5 xl:grid-cols-2">
         <PaginatedDashboardList
           title="Campanhas ativas"
@@ -111,6 +118,22 @@ export function DashboardPage() {
         />
       </div>
     </div>
+  );
+}
+
+function ShortcutButton({ label, description, icon: Icon, page }: { label: string; description: string; icon: React.ElementType; page: string }) {
+  return (
+    <button
+      type="button"
+      className="flex items-center gap-3 rounded-md border border-slate-200 bg-white p-3 text-left transition hover:border-accent hover:bg-accent-soft"
+      onClick={() => { window.location.hash = page; }}
+    >
+      <span className="flex h-9 w-9 items-center justify-center rounded-md bg-slate-100 text-slate-700"><Icon className="h-4 w-4" /></span>
+      <span>
+        <span className="block text-sm font-bold text-slate-950">{label}</span>
+        <span className="block text-xs font-semibold text-slate-500">{description}</span>
+      </span>
+    </button>
   );
 }
 

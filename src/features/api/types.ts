@@ -182,3 +182,90 @@ export type MessageRecipient = {
   sent_at?: string;
   created_at: string;
 };
+
+
+export type EmailSettings = {
+  id: string;
+  box_id: string;
+  provider: 'smtp' | 'mock';
+  smtp_host: string;
+  smtp_port: number;
+  username: string;
+  from_email: string;
+  from_name: string;
+  has_password: boolean;
+  updated_at?: string;
+  enabled: boolean;
+};
+
+export type EmailTemplate = {
+  id: string;
+  name: string;
+  subject: string;
+  content: string;
+};
+
+export type EmailCampaign = {
+  id: string;
+  name: string;
+  campaign_id: string;
+  audience: 'near_goal' | 'almost_there' | 'achieved' | 'inactive' | 'all';
+  template_id: string;
+  sent_at?: string;
+};
+
+export type EmailCampaignPreview = {
+  total: number;
+  subject: string;
+  body: string;
+  student_id?: string;
+  student_name?: string;
+  email?: string;
+};
+
+export type SendEmailCampaignResult = {
+  total: number;
+  sent: number;
+  failed: number;
+};
+
+export type EmailRecipient = {
+  id: string;
+  email_campaign_id: string;
+  student_id: string;
+  email: string;
+  status: 'pending' | 'sent' | 'failed';
+  error_message?: string;
+  sent_at?: string;
+  created_at: string;
+};
+
+export type AutomationRun = {
+  id: string;
+  status: 'running' | 'success' | 'failed';
+  source: string;
+  filename: string;
+  imported: boolean;
+  recalculated_campaigns: number;
+  skipped_message_campaigns: number;
+  sent_messages: number;
+  failed_messages: number;
+  error_message?: string;
+  started_at: string;
+  finished_at?: string;
+};
+
+
+export type AutomationSchedule = {
+  id: string;
+  name: string;
+  mode: 'full_daily' | 'recalculate_only' | 'send_almost_there' | 'send_achieved' | 'send_inactive';
+  run_time: string;
+  timezone: string;
+  days_of_week: string;
+  allow_resend: boolean;
+  enabled: boolean;
+  last_run_at?: string;
+  created_at: string;
+  updated_at: string;
+};

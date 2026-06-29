@@ -7,6 +7,13 @@ import type {
   CurrentUser,
   DashboardSummary,
   EligibleStudentReport,
+  EmailCampaign,
+  EmailCampaignPreview,
+  EmailRecipient,
+  EmailSettings,
+  EmailTemplate,
+  AutomationRun,
+  AutomationSchedule,
   ImportHistory,
   LoginResponse,
   MessageCampaign,
@@ -14,6 +21,7 @@ import type {
   MessageRecipient,
   MonthlyFrequencyReport,
   SendMessageCampaignResult,
+  SendEmailCampaignResult,
   MessageTemplate,
   Reward,
   RewardDelivery,
@@ -133,6 +141,61 @@ export const api = {
       method: 'POST',
     }),
   messageRecipients: (campaignId: string) => apiRequest<MessageRecipient[]>(`/api/v1/message-campaigns/${campaignId}/recipients`),
+
+  emailSettings: () => apiRequest<EmailSettings>('/api/v1/email/settings'),
+  updateEmailSettings: (payload: { provider: 'smtp' | 'mock'; smtp_host: string; smtp_port: number; username: string; password: string; from_email: string; from_name: string; enabled: boolean }) =>
+    apiRequest<EmailSettings>('/api/v1/email/settings', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  testEmailSettings: (payload?: { provider: 'smtp' | 'mock'; smtp_host: string; smtp_port: number; username: string; password: string; from_email: string; from_name: string; enabled: boolean }) =>
+    apiRequest<void>('/api/v1/email/settings/test', {
+      method: 'POST',
+      body: payload ? JSON.stringify(payload) : undefined,
+    }),
+  emailTemplates: () => apiRequest<EmailTemplate[]>('/api/v1/email-templates'),
+  createEmailTemplate: (payload: { name: string; subject: string; content: string }) =>
+    apiRequest<EmailTemplate>('/api/v1/email-templates', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updateEmailTemplate: (templateId: string, payload: { name: string; subject: string; content: string }) =>
+    apiRequest<EmailTemplate>(`/api/v1/email-templates/${templateId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  emailCampaigns: () => apiRequest<EmailCampaign[]>('/api/v1/email-campaigns'),
+  createEmailCampaign: (payload: { name: string; campaign_id: string; audience: string; template_id: string }) =>
+    apiRequest<EmailCampaign>('/api/v1/email-campaigns', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  emailCampaignPreview: (campaignId: string) => apiRequest<EmailCampaignPreview>(`/api/v1/email-campaigns/${campaignId}/preview`),
+  sendEmailCampaign: (campaignId: string) =>
+    apiRequest<SendEmailCampaignResult>(`/api/v1/email-campaigns/${campaignId}/send`, {
+      method: 'POST',
+    }),
+  emailRecipients: (campaignId: string) => apiRequest<EmailRecipient[]>(`/api/v1/email-campaigns/${campaignId}/recipients`),
+  automationRuns: () => apiRequest<AutomationRun[]>('/api/v1/automation/runs'),
+  automationSchedules: () => apiRequest<AutomationSchedule[]>('/api/v1/automation/schedules'),
+  createAutomationSchedule: (payload: { name: string; mode: string; run_time: string; timezone: string; days_of_week: string; allow_resend: boolean; enabled: boolean }) =>
+    apiRequest<AutomationSchedule>('/api/v1/automation/schedules', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updateAutomationSchedule: (scheduleId: string, payload: { name: string; mode: string; run_time: string; timezone: string; days_of_week: string; allow_resend: boolean; enabled: boolean }) =>
+    apiRequest<AutomationSchedule>(`/api/v1/automation/schedules/${scheduleId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  deleteAutomationSchedule: (scheduleId: string) =>
+    apiRequest<void>(`/api/v1/automation/schedules/${scheduleId}`, {
+      method: 'DELETE',
+    }),
+  runAutomationScheduleNow: (scheduleId: string) =>
+    apiRequest<AutomationRun>(`/api/v1/automation/schedules/${scheduleId}/run`, {
+      method: 'POST',
+    }),
   eligibleStudentsReport: () => apiRequest<EligibleStudentReport[]>('/api/v1/reports/eligible-students'),
   pendingRewardsReport: () => apiRequest<RewardDelivery[]>('/api/v1/reports/pending-rewards'),
   monthlyFrequencyReport: (month: string) => apiRequest<MonthlyFrequencyReport[]>(`/api/v1/reports/monthly-frequency?month=${month}`),
