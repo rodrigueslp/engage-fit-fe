@@ -2,6 +2,7 @@ import { Activity, AlertTriangle, CheckCircle2, Gift, MessageCircle, RefreshCw, 
 import { useEffect, useState } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
 import { KpiCard } from '../../components/common/KpiCard';
+import { PageHeader } from '../../components/common/PageHeader';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
@@ -11,9 +12,9 @@ import type { Campaign, DashboardSummary, RewardDelivery, Student } from '../../
 const dashboardPageSize = 5;
 const riskStatusLabels: Record<NonNullable<Student['risk_status']>, string> = {
   active: 'Ativo',
-  observing: 'Em observacao',
+  observing: 'Em observação',
   paused: 'Pausado',
-  not_interested: 'Nao quer continuar',
+  not_interested: 'Não quer continuar',
 };
 
 export function DashboardPage() {
@@ -53,25 +54,22 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-950">Dashboard</h1>
-        <p className="text-sm text-slate-500">Resumo operacional do box</p>
-      </div>
+      <PageHeader title="Dashboard" eyebrow="Operação do dia" description="Acompanhe metas, alunos em risco, brindes pendentes e os próximos passos da campanha." />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         <KpiCard label="Alunos" value={summary?.total_students ?? 0} icon={Users} />
         <KpiCard label="Check-ins" value={summary?.total_checkins ?? 0} icon={Activity} />
-        <KpiCard label="Elegiveis" value={summary?.eligible_students ?? 0} icon={CheckCircle2} />
-        <KpiCard label="Proximos" value={summary?.near_goal_students ?? 0} icon={Target} />
+        <KpiCard label="Elegíveis" value={summary?.eligible_students ?? 0} icon={CheckCircle2} />
+        <KpiCard label="Próximos" value={summary?.near_goal_students ?? 0} icon={Target} />
         <KpiCard label="Em risco" value={summary?.at_risk_students ?? 0} icon={AlertTriangle} />
         <KpiCard label="Brindes" value={summary?.pending_rewards ?? 0} icon={Gift} />
       </div>
 
       <div className="grid gap-3 md:grid-cols-4">
         <ShortcutButton label="Brindes" description="Baixar entregas pendentes" icon={Gift} page="rewards" />
-        <ShortcutButton label="Relatorios" description="Exportar recortes operacionais" icon={CheckCircle2} page="reports" />
+        <ShortcutButton label="Relatórios" description="Exportar recortes operacionais" icon={CheckCircle2} page="reports" />
         <ShortcutButton label="WhatsApp" description="Disparos e falhas recentes" icon={MessageCircle} page="whatsapp" />
-        <ShortcutButton label="Automacao" description="Historico da rotina diaria" icon={RefreshCw} page="automation" />
+        <ShortcutButton label="Automação" description="Histórico da rotina diária" icon={RefreshCw} page="automation" />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
@@ -83,16 +81,16 @@ export function DashboardPage() {
             <div key={campaign.id} className="flex items-center justify-between border-b border-slate-100 py-3 last:border-0">
               <div>
                 <p className="font-semibold text-slate-950">{campaign.name}</p>
-                <p className="text-sm text-slate-500">{campaign.start_date} ate {campaign.end_date}</p>
+                <p className="text-sm text-slate-500">{campaign.start_date} até {campaign.end_date}</p>
               </div>
               <StatusBadge value="active" label="Ativa" />
             </div>
           )}
         />
         <PaginatedDashboardList
-          title="Proximos da meta"
+          title="Próximos da meta"
           items={nearGoal}
-          emptyMessage="Nenhum aluno proximo da meta"
+          emptyMessage="Nenhum aluno próximo da meta"
           renderItem={(student) => <StudentRow key={student.id} student={student} />}
         />
         <PaginatedDashboardList
@@ -161,14 +159,14 @@ function PaginatedDashboardList<T>({ title, items, emptyMessage, renderItem }: {
         {totalPages > 1 && (
           <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
             <p className="text-xs font-semibold text-slate-400">
-              Pagina {currentPage} de {totalPages}
+              Página {currentPage} de {totalPages}
             </p>
             <div className="flex gap-2">
               <Button type="button" variant="secondary" className="h-8 px-2 text-xs" disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
                 Anterior
               </Button>
               <Button type="button" variant="secondary" className="h-8 px-2 text-xs" disabled={currentPage === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>
-                Proxima
+                Próxima
               </Button>
             </div>
           </div>
@@ -198,7 +196,7 @@ function RiskStudentRow({ student, onRiskStatusChange }: { student: Student; onR
         <p className="font-semibold text-slate-950">{student.name}</p>
         <p className="text-sm text-slate-500">{student.phone || student.email || student.external_id}</p>
         <p className="mt-1 text-xs text-slate-400">
-          {student.risk_last_message_at ? `Ultima mensagem: ${formatDateTime(student.risk_last_message_at)}` : 'Sem mensagem de risco registrada'}
+          {student.risk_last_message_at ? `Última mensagem: ${formatDateTime(student.risk_last_message_at)}` : 'Sem mensagem de risco registrada'}
         </p>
       </div>
       <div className="flex flex-col items-end gap-2">

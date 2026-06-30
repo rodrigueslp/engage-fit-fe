@@ -15,10 +15,11 @@ import { SettingsPage } from '../pages/settings/SettingsPage';
 import { StudentsPage } from '../pages/students/StudentsPage';
 import { WhatsappPage } from '../pages/whatsapp/WhatsappPage';
 import { LoadingState } from '../components/common/State';
+import { ShowcasePage } from '../pages/showcase/ShowcasePage';
 
-export type PageKey = 'dashboard' | 'campaigns' | 'rewards' | 'students' | 'imports' | 'whatsapp' | 'email' | 'automation' | 'reports' | 'settings';
+export type PageKey = 'showcase' | 'dashboard' | 'campaigns' | 'rewards' | 'students' | 'imports' | 'whatsapp' | 'email' | 'automation' | 'reports' | 'settings';
 
-const pageKeys: PageKey[] = ['dashboard', 'campaigns', 'rewards', 'students', 'imports', 'whatsapp', 'email', 'automation', 'reports', 'settings'];
+const pageKeys: PageKey[] = ['showcase', 'dashboard', 'campaigns', 'rewards', 'students', 'imports', 'whatsapp', 'email', 'automation', 'reports', 'settings'];
 
 function pageFromHash(): PageKey {
   const hashPage = window.location.hash.replace(/^#\/?/, '');
@@ -61,6 +62,10 @@ export function App() {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  if (page === 'showcase') {
+    return <ShowcasePage />;
+  }
 
   if (checkingSession) {
     return (

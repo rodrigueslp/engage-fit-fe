@@ -1,5 +1,6 @@
 import { Download, Gift, Medal, CalendarDays } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Button } from '../../components/ui/button';
@@ -11,9 +12,9 @@ import type { EligibleStudentReport, MonthlyFrequencyReport, RewardDelivery } fr
 type ReportKey = 'eligible' | 'pending_rewards' | 'monthly_frequency';
 
 const reports = [
-  { key: 'eligible', title: 'Elegiveis', description: 'Alunos que bateram a meta da campanha.', icon: Medal },
+  { key: 'eligible', title: 'Elegíveis', description: 'Alunos que bateram a meta da campanha.', icon: Medal },
   { key: 'pending_rewards', title: 'Brindes pendentes', description: 'Entregas de brinde ainda em aberto.', icon: Gift },
-  { key: 'monthly_frequency', title: 'Frequencia mensal', description: 'Ranking de check-ins por aluno no mes.', icon: CalendarDays },
+  { key: 'monthly_frequency', title: 'Frequência mensal', description: 'Ranking de check-ins por aluno no mês.', icon: CalendarDays },
 ] as const;
 
 export function ReportsPage() {
@@ -89,7 +90,7 @@ export function ReportsPage() {
         setFrequencyRows(await api.monthlyFrequencyReport(month));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar relatorio');
+      setError(err instanceof Error ? err.message : 'Erro ao carregar relatório');
     } finally {
       setLoading(false);
     }
@@ -102,7 +103,7 @@ export function ReportsPage() {
       const { filename, headers, rows } = reportExportData(selectedReport, month, filteredEligibleRows, filteredPendingRewardRows, filteredFrequencyRows);
       downloadCSV(filename, headers, rows);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao exportar relatorio');
+      setError(err instanceof Error ? err.message : 'Erro ao exportar relatório');
     } finally {
       setExporting(false);
     }
@@ -110,10 +111,7 @@ export function ReportsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-950">Relatorios</h1>
-        <p className="mt-1 text-sm text-slate-500">Acompanhe elegiveis, brindes pendentes e frequencia mensal.</p>
-      </div>
+      <PageHeader title="Relatórios" eyebrow="Exportação e auditoria" description="Acompanhe elegíveis, brindes pendentes e frequência mensal com filtros prontos para exportar." />
 
       {error && <ErrorState message={error} />}
 
@@ -189,10 +187,10 @@ export function ReportsPage() {
             )}
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="overflow-x-auto p-0">
           {loading ? (
             <div className="p-5">
-              <LoadingState label="Carregando relatorio" />
+              <LoadingState label="Carregando relatório" />
             </div>
           ) : selectedReport === 'eligible' ? (
             <EligibleStudentsTable rows={filteredEligibleRows} />
@@ -208,11 +206,11 @@ export function ReportsPage() {
 }
 
 function EligibleStudentsTable({ rows }: { rows: EligibleStudentReport[] }) {
-  if (rows.length === 0) return <div className="p-5"><EmptyState message="Nenhum aluno elegivel encontrado" /></div>;
+  if (rows.length === 0) return <div className="p-5"><EmptyState message="Nenhum aluno elegível encontrado" /></div>;
 
   return (
     <div className="divide-y divide-slate-100">
-      <div className="grid grid-cols-[1.2fr_1.2fr_120px_120px_120px_1fr] px-5 py-3 text-xs font-bold uppercase text-slate-500">
+      <div className="grid min-w-[900px] grid-cols-[1.2fr_1.2fr_120px_120px_120px_1fr] px-5 py-3 text-xs font-bold uppercase text-slate-500">
         <span>Campanha</span>
         <span>Aluno</span>
         <span>Plataforma</span>
@@ -221,7 +219,7 @@ function EligibleStudentsTable({ rows }: { rows: EligibleStudentReport[] }) {
         <span>Brinde</span>
       </div>
       {rows.map((row) => (
-        <div key={`${row.campaign_id}-${row.student_id}`} className="grid grid-cols-[1.2fr_1.2fr_120px_120px_120px_1fr] items-center gap-3 px-5 py-4">
+        <div key={`${row.campaign_id}-${row.student_id}`} className="grid min-w-[900px] grid-cols-[1.2fr_1.2fr_120px_120px_120px_1fr] items-center gap-3 px-5 py-4">
           <p className="font-semibold text-slate-950">{row.campaign_name}</p>
           <div>
             <p className="font-semibold text-slate-950">{row.student_name}</p>
@@ -242,14 +240,14 @@ function PendingRewardsTable({ rows }: { rows: RewardDelivery[] }) {
 
   return (
     <div className="divide-y divide-slate-100">
-      <div className="grid grid-cols-[1.2fr_1.2fr_1fr_120px] px-5 py-3 text-xs font-bold uppercase text-slate-500">
+      <div className="grid min-w-[720px] grid-cols-[1.2fr_1.2fr_1fr_120px] px-5 py-3 text-xs font-bold uppercase text-slate-500">
         <span>Campanha</span>
         <span>Aluno</span>
         <span>Brinde</span>
         <span>Status</span>
       </div>
       {rows.map((row) => (
-        <div key={row.id} className="grid grid-cols-[1.2fr_1.2fr_1fr_120px] items-center gap-3 px-5 py-4">
+        <div key={row.id} className="grid min-w-[720px] grid-cols-[1.2fr_1.2fr_1fr_120px] items-center gap-3 px-5 py-4">
           <p className="font-semibold text-slate-950">{row.campaign_name ?? 'Campanha'}</p>
           <div>
             <p className="font-semibold text-slate-950">{row.student_name ?? row.student_id}</p>
@@ -264,11 +262,11 @@ function PendingRewardsTable({ rows }: { rows: RewardDelivery[] }) {
 }
 
 function MonthlyFrequencyTable({ rows }: { rows: MonthlyFrequencyReport[] }) {
-  if (rows.length === 0) return <div className="p-5"><EmptyState message="Nenhum check-in encontrado para o mes" /></div>;
+  if (rows.length === 0) return <div className="p-5"><EmptyState message="Nenhum check-in encontrado para o mês" /></div>;
 
   return (
     <div className="divide-y divide-slate-100">
-      <div className="grid grid-cols-[1.4fr_120px_120px_140px_140px] px-5 py-3 text-xs font-bold uppercase text-slate-500">
+      <div className="grid min-w-[780px] grid-cols-[1.4fr_120px_120px_140px_140px] px-5 py-3 text-xs font-bold uppercase text-slate-500">
         <span>Aluno</span>
         <span>Plataforma</span>
         <span>Check-ins</span>
@@ -276,7 +274,7 @@ function MonthlyFrequencyTable({ rows }: { rows: MonthlyFrequencyReport[] }) {
         <span>Ultimo</span>
       </div>
       {rows.map((row) => (
-        <div key={row.student_id} className="grid grid-cols-[1.4fr_120px_120px_140px_140px] items-center gap-3 px-5 py-4">
+        <div key={row.student_id} className="grid min-w-[780px] grid-cols-[1.4fr_120px_120px_140px_140px] items-center gap-3 px-5 py-4">
           <div>
             <p className="font-semibold text-slate-950">{row.student_name}</p>
             <p className="mt-1 text-xs text-slate-400">{row.student_phone || 'Sem telefone'}</p>
@@ -294,7 +292,7 @@ function MonthlyFrequencyTable({ rows }: { rows: MonthlyFrequencyReport[] }) {
 function reportExportData(report: ReportKey, month: string, eligibleRows: EligibleStudentReport[], pendingRows: RewardDelivery[], frequencyRows: MonthlyFrequencyReport[]) {
   if (report === 'eligible') {
     return {
-      filename: 'relatorio-elegiveis.csv',
+      filename: 'relatório-elegíveis.csv',
       headers: ['campanha', 'aluno', 'telefone', 'plataforma', 'checkins', 'meta', 'faltam', 'progresso', 'brinde'],
       rows: eligibleRows.map((row) => [
         row.campaign_name,
@@ -311,7 +309,7 @@ function reportExportData(report: ReportKey, month: string, eligibleRows: Eligib
   }
   if (report === 'pending_rewards') {
     return {
-      filename: 'relatorio-brindes-pendentes.csv',
+      filename: 'relatório-brindes-pendentes.csv',
       headers: ['campanha', 'aluno', 'telefone', 'brinde', 'status'],
       rows: pendingRows.map((row) => [
         row.campaign_name ?? '',
@@ -323,7 +321,7 @@ function reportExportData(report: ReportKey, month: string, eligibleRows: Eligib
     };
   }
   return {
-    filename: `relatorio-frequencia-${month}.csv`,
+    filename: `relatório-frequência-${month}.csv`,
     headers: ['aluno', 'telefone', 'plataforma', 'checkins', 'primeiro_checkin', 'ultimo_checkin'],
     rows: frequencyRows.map((row) => [
       row.student_name,

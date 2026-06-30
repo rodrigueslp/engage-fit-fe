@@ -53,9 +53,9 @@ export function SettingsPage() {
       setHasSavedCredential(settings.has_api_key ?? Boolean(apiKey));
       setUpdatedAt(settings.updated_at ?? '');
       setDirty(false);
-      setStatus('Configuracao salva e pronta para teste');
+      setStatus('Configuração salva e pronta para teste');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar configuracao');
+      setError(err instanceof Error ? err.message : 'Erro ao salvar configuração');
     } finally {
       setSaving(false);
     }
@@ -67,9 +67,9 @@ export function SettingsPage() {
     setTesting(true);
     try {
       await api.testWhatsappSettings({ provider, base_url: baseUrl, instance_name: instanceName, api_key: apiKey, enabled });
-      setStatus('Conexao validada');
+      setStatus('Conexão validada');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao testar conexao');
+      setError(err instanceof Error ? err.message : 'Erro ao testar conexão');
     } finally {
       setTesting(false);
     }
@@ -107,8 +107,8 @@ export function SettingsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-950">Configuracoes</h1>
-        <p className="mt-1 text-sm text-slate-500">Conexao operacional com canais externos.</p>
+        <h1 className="text-2xl font-bold text-slate-950">Configurações</h1>
+        <p className="mt-1 text-sm text-slate-500">Conexão operacional com canais externos.</p>
       </div>
 
       {error && <ErrorState message={error} />}
@@ -134,7 +134,7 @@ export function SettingsPage() {
         <CardContent>
           <form className="grid gap-4 md:grid-cols-2" onSubmit={saveRiskSettings}>
             <label className="space-y-1 text-sm font-semibold text-slate-600">
-              Aluno em risco apos quantos dias sem check-in
+              Aluno em risco após quantos dias sem check-in
               <Input
                 type="number"
                 min={1}
@@ -145,7 +145,7 @@ export function SettingsPage() {
               />
             </label>
             <label className="space-y-1 text-sm font-semibold text-slate-600">
-              Reenviar mensagem de risco apos quantos dias
+              Reenviar mensagem de risco após quantos dias
               <Input
                 type="number"
                 min={1}
@@ -187,11 +187,11 @@ export function SettingsPage() {
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Credencial</p>
               <p className="mt-1 flex items-center gap-2 text-sm font-bold text-slate-950">
                 <KeyRound className="h-4 w-4 text-slate-500" />
-                {hasSavedCredential ? 'Cadastrada' : 'Nao cadastrada'}
+                {hasSavedCredential ? 'Cadastrada' : 'Não cadastrada'}
               </p>
             </div>
             <div className="rounded-md border border-slate-200 px-3 py-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ultima atualizacao</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Última atualizacao</p>
               <p className="mt-1 text-sm font-bold text-slate-950">{updatedAt ? new Date(updatedAt).toLocaleString('pt-BR') : 'Nunca'}</p>
             </div>
           </div>
@@ -245,12 +245,12 @@ export function SettingsPage() {
               </Button>
               <Button type="button" variant="secondary" onClick={testConnection} disabled={testing}>
                 <Plug className="h-4 w-4" />
-                {testing ? 'Testando' : dirty ? 'Testar dados atuais' : 'Testar conexao salva'}
+                {testing ? 'Testando' : dirty ? 'Testar dados atuais' : 'Testar conexão salva'}
               </Button>
             </div>
             {dirty && (
               <p className="text-sm font-semibold text-amber-700 xl:col-span-3">
-                Existem alteracoes nao salvas. O teste usa os dados atuais da tela; clique em Salvar para persistir.
+                Existem alterações não salvas. O teste usa os dados atuais da tela; clique em Salvar para persistir.
               </p>
             )}
           </form>
@@ -258,7 +258,7 @@ export function SettingsPage() {
           <div className="mt-5 flex gap-3 rounded-md border border-orange-200 bg-orange-50 p-3 text-sm text-orange-800">
             <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
-              Para campanhas ativas em producao, use templates aprovados na Twilio/Meta e preencha o Content SID no template. Em desenvolvimento, envio real so e liberado com `WHATSAPP_ALLOW_REAL_SEND=true`; use `WHATSAPP_DEV_ALLOWED_RECIPIENT_PHONES` para limitar os numeros permitidos.
+              Para campanhas ativas em produção, use templates aprovados na Twilio/Meta e preencha o Content SID no template. Em desenvolvimento, envio real só e liberado com `WHATSAPP_ALLOW_REAL_SEND=true`; use `WHATSAPP_DEV_ALLOWED_RECIPIENT_PHONES` para limitar os números permitidos.
             </p>
           </div>
         </CardContent>

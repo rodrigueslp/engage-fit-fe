@@ -1,5 +1,6 @@
 import { CheckCircle2, Gift, Search, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Button } from '../../components/ui/button';
@@ -70,10 +71,7 @@ export function RewardsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-950">Brindes</h1>
-        <p className="mt-1 text-sm text-slate-500">Busca rapida para entregar brindes aos alunos elegiveis.</p>
-      </div>
+      <PageHeader title="Brindes" eyebrow="Entrega operacional" description="Localize pendências, confira telefone e dê baixa nos brindes entregues sem sair da tela." />
 
       {error && <ErrorState message={error} />}
 
@@ -88,7 +86,7 @@ export function RewardsPage() {
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-base font-bold text-slate-950">Entregas de brindes</h2>
-              <p className="mt-1 text-sm text-slate-500">{pendingCampaigns} campanha(s) com pendencias de brinde.</p>
+              <p className="mt-1 text-sm text-slate-500">{pendingCampaigns} campanha(s) com pendências de brinde.</p>
             </div>
             <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row">
               <select
@@ -127,51 +125,53 @@ export function RewardsPage() {
               <EmptyState message="Nenhum brinde encontrado para essa busca" />
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
-              <div className="grid grid-cols-[1.2fr_1.1fr_1fr_1fr_120px_150px] px-5 py-3 text-xs font-bold uppercase text-slate-500">
-                <span>Campanha</span>
-                <span>Aluno</span>
-                <span>Telefone</span>
-                <span>Brinde</span>
-                <span>Status</span>
-                <span className="text-right">Acao</span>
+            <div className="overflow-x-auto">
+              <div className="min-w-[920px] divide-y divide-slate-100">
+                <div className="grid grid-cols-[1.2fr_1.1fr_1fr_1fr_120px_150px] px-5 py-3 text-xs font-bold uppercase text-slate-500">
+                  <span>Campanha</span>
+                  <span>Aluno</span>
+                  <span>Telefone</span>
+                  <span>Brinde</span>
+                  <span>Status</span>
+                  <span className="text-right">Ação</span>
+                </div>
+                {filteredDeliveries.map((delivery) => {
+                  const delivering = deliveringIds.includes(delivery.id);
+                  return (
+                    <div key={delivery.id} className="grid grid-cols-[1.2fr_1.1fr_1fr_1fr_120px_150px] items-center gap-3 px-5 py-4">
+                      <div>
+                        <p className="font-semibold text-slate-950">{delivery.campaign_name ?? 'Campanha'}</p>
+                        {delivery.campaign_id && <p className="mt-1 text-xs text-slate-400">{delivery.campaign_id}</p>}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-950">{delivery.student_name ?? delivery.student_id}</p>
+                        <p className="mt-1 text-xs text-slate-400">{delivery.student_id}</p>
+                      </div>
+                      <p className="text-sm text-slate-600">{delivery.student_phone || '-'}</p>
+                      <p className="text-sm font-semibold text-slate-700">{delivery.reward_name ?? delivery.reward_id}</p>
+                      <div>
+                        <StatusBadge value={delivery.delivered ? 'achieved' : 'warning'} label={delivery.delivered ? 'Entregue' : 'Pendente'} />
+                        {delivery.delivered_at && <p className="mt-1 text-xs text-slate-400">{formatDateTime(delivery.delivered_at)}</p>}
+                      </div>
+                      <div className="text-right">
+                        {delivery.delivered ? (
+                          <span className="text-xs font-semibold text-slate-400">Finalizado</span>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            className="h-8 px-2 text-xs"
+                            disabled={delivering}
+                            onClick={() => markDelivered(delivery.id)}
+                          >
+                            {delivering ? 'Salvando' : 'Marcar entregue'}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              {filteredDeliveries.map((delivery) => {
-                const delivering = deliveringIds.includes(delivery.id);
-                return (
-                  <div key={delivery.id} className="grid grid-cols-[1.2fr_1.1fr_1fr_1fr_120px_150px] items-center gap-3 px-5 py-4">
-                    <div>
-                      <p className="font-semibold text-slate-950">{delivery.campaign_name ?? 'Campanha'}</p>
-                      {delivery.campaign_id && <p className="mt-1 text-xs text-slate-400">{delivery.campaign_id}</p>}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-950">{delivery.student_name ?? delivery.student_id}</p>
-                      <p className="mt-1 text-xs text-slate-400">{delivery.student_id}</p>
-                    </div>
-                    <p className="text-sm text-slate-600">{delivery.student_phone || '-'}</p>
-                    <p className="text-sm font-semibold text-slate-700">{delivery.reward_name ?? delivery.reward_id}</p>
-                    <div>
-                      <StatusBadge value={delivery.delivered ? 'achieved' : 'warning'} label={delivery.delivered ? 'Entregue' : 'Pendente'} />
-                      {delivery.delivered_at && <p className="mt-1 text-xs text-slate-400">{formatDateTime(delivery.delivered_at)}</p>}
-                    </div>
-                    <div className="text-right">
-                      {delivery.delivered ? (
-                        <span className="text-xs font-semibold text-slate-400">Finalizado</span>
-                      ) : (
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          className="h-8 px-2 text-xs"
-                          disabled={delivering}
-                          onClick={() => markDelivered(delivery.id)}
-                        >
-                          {delivering ? 'Salvando' : 'Marcar entregue'}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           )}
         </CardContent>

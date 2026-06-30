@@ -1,5 +1,6 @@
 import { MessageCircle, Plus } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
+import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
@@ -18,7 +19,7 @@ const templateVariables = [
   '{{platform}}',
 ];
 
-const defaultTemplate = 'Ola, {{name}}! Recebemos seu check-in no {{box_name}}. Voce ja realizou {{current_checkins}} check-ins neste mes e faltam apenas {{remaining_checkins}} para atingir sua meta de {{target_checkins}} e garantir {{reward_name}}.';
+const defaultTemplate = 'Olá, {{name}}! Recebemos seu check-in no {{box_name}}. Você já realizou {{current_checkins}} check-ins neste mês e faltam apenas {{remaining_checkins}} para atingir sua meta de {{target_checkins}} e garantir {{reward_name}}.';
 
 export function WhatsappPage() {
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
@@ -107,6 +108,7 @@ export function WhatsappPage() {
       await loadRecipients(campaignId);
       load();
     } catch (err) {
+      await loadRecipients(campaignId);
       setError(err instanceof Error ? err.message : 'Erro ao enviar campanha');
     } finally {
       setSendingCampaignId('');
@@ -141,13 +143,16 @@ export function WhatsappPage() {
   }
 
   function goalCampaignName(campaignId: string) {
-    return goalCampaigns.find((campaign) => campaign.id === campaignId)?.name ?? 'Campanha nao selecionada';
+    return goalCampaigns.find((campaign) => campaign.id === campaignId)?.name ?? 'Campanha não selecionada';
   }
 
   if (loading) return <LoadingState label="Carregando WhatsApp" />;
 
   return (
     <div className="grid gap-5 xl:grid-cols-2">
+      <div className="xl:col-span-2">
+        <PageHeader title="WhatsApp" eyebrow="Campanhas de relacionamento" description="Crie templates, confira o preview da mensagem e acompanhe falhas do último envio." />
+      </div>
       {error && <div className="xl:col-span-2"><ErrorState message={error} /></div>}
       {sendStatus && (
         <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 xl:col-span-2">
@@ -160,12 +165,12 @@ export function WhatsappPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            Para Twilio WhatsApp, cadastre o <span className="font-semibold">Content SID (HX...)</span> aprovado no console. Sem isso, mensagens so funcionam dentro de 24h apos o destinatario responder no sandbox.
+            Para Twilio WhatsApp, cadastre o <span className="font-semibold">Content SID (HX...)</span> aprovado no console. Sem isso, mensagens só funcionam dentro de 24h após o destinatário responder no sandbox.
           </div>
           <form className="space-y-3" onSubmit={createTemplate}>
             <Input placeholder="Nome do template" value={templateName} onChange={(event) => setTemplateName(event.target.value)} required />
             <Input placeholder="Content SID aprovado na Twilio (HX...)" value={contentSid} onChange={(event) => setContentSid(event.target.value)} required />
-            <Textarea placeholder="Conteudo da mensagem" value={templateContent} onChange={(event) => setTemplateContent(event.target.value)} required />
+            <Textarea placeholder="Conteúdo da mensagem" value={templateContent} onChange={(event) => setTemplateContent(event.target.value)} required />
             <div className="flex flex-wrap gap-2">
               {templateVariables.map((variable) => (
                 <button
@@ -189,7 +194,7 @@ export function WhatsappPage() {
               {template.content_sid ? (
                 <p className="mt-1 text-xs font-semibold text-emerald-700">{template.content_sid}</p>
               ) : (
-                <p className="mt-1 text-xs font-semibold text-amber-700">Content SID nao configurado — envio via Twilio vai falhar fora da janela de 24h</p>
+                <p className="mt-1 text-xs font-semibold text-amber-700">Content SID não configurado — envio via Twilio vai falhar fora da janela de 24h</p>
               )}
               <p className="mt-1 text-sm text-slate-500">{template.content}</p>
               {editingTemplateId === template.id ? (
@@ -234,7 +239,7 @@ export function WhatsappPage() {
             </select>
             <select className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm" value={audience} onChange={(event) => setAudience(event.target.value)}>
               <option value="almost_there">Falta pouco</option>
-              <option value="near_goal">Proximos da meta</option>
+              <option value="near_goal">Próximos da meta</option>
               <option value="achieved">Meta atingida</option>
               <option value="inactive">Inativos</option>
               <option value="all">Todos</option>
@@ -249,12 +254,12 @@ export function WhatsappPage() {
           </form>
           {campaigns.length === 0 ? <EmptyState message="Nenhuma campanha de mensagem" /> : campaigns.map((campaign) => (
             <div key={campaign.id} className="space-y-3 rounded-md border border-slate-100 p-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <p className="font-semibold text-slate-950">{campaign.name}</p>
-                  <p className="text-sm text-slate-500">{campaign.audience} · {goalCampaignName(campaign.campaign_id)}</p>
+                  <p className="text-sm text-slate-500">{audienceLabel(campaign.audience)} · {goalCampaignName(campaign.campaign_id)}</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap gap-2">
                   <p className="text-xs font-semibold text-slate-500">{campaign.sent_at ? 'Enviada' : 'Rascunho'}</p>
                   <Button type="button" variant="secondary" onClick={() => previewCampaign(campaign.id)} disabled={previewingCampaignId === campaign.id}>
                     {previewingCampaignId === campaign.id ? 'Gerando' : 'Preview'}
@@ -269,9 +274,9 @@ export function WhatsappPage() {
                 <div className="space-y-2 rounded-md border border-accent/20 bg-accent-soft p-3">
                   <div className="flex flex-col gap-1 text-xs font-semibold text-slate-600 md:flex-row md:items-center md:justify-between">
                     <span>Preview com {previewsByCampaign[campaign.id].student_name || 'aluno exemplo'}</span>
-                    <span>{previewsByCampaign[campaign.id].total} destinatarios na audiencia</span>
+                    <span>{previewsByCampaign[campaign.id].total} destinatários na audiência</span>
                   </div>
-                  <p className="whitespace-pre-wrap text-sm text-slate-800">{previewsByCampaign[campaign.id].body || 'Nenhum destinatario encontrado para esta audiencia.'}</p>
+                  <p className="whitespace-pre-wrap text-sm text-slate-800">{previewsByCampaign[campaign.id].body || 'Nenhum destinatário encontrado para esta audiência.'}</p>
                   {previewsByCampaign[campaign.id].phone && <p className="text-xs font-semibold text-slate-500">Telefone exemplo: {previewsByCampaign[campaign.id].phone}</p>}
                 </div>
               )}
@@ -292,4 +297,15 @@ export function WhatsappPage() {
       </Card>
     </div>
   );
+}
+
+function audienceLabel(audience: MessageCampaign['audience']) {
+  const labels: Record<MessageCampaign['audience'], string> = {
+    almost_there: 'Falta pouco',
+    near_goal: 'Próximos da meta',
+    achieved: 'Meta atingida',
+    inactive: 'Inativos',
+    all: 'Todos',
+  };
+  return labels[audience];
 }

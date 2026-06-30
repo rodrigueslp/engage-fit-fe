@@ -1,5 +1,6 @@
 import { Play, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
+import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Button } from '../../components/ui/button';
@@ -53,7 +54,7 @@ export function AutomationPage() {
         setSchedules(schedules);
         setRuns(runs);
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar automacao'))
+      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar automação'))
       .finally(() => setLoading(false));
   }
 
@@ -99,7 +100,7 @@ export function AutomationPage() {
     setRunningScheduleId(scheduleId);
     try {
       const run = await api.runAutomationScheduleNow(scheduleId);
-      setStatus(`Execucao finalizada: ${statusLabel(run.status)}. Mensagens enviadas: ${run.sent_messages}. Falhas: ${run.failed_messages}.`);
+      setStatus(`Execução finalizada: ${statusLabel(run.status)}. Mensagens enviadas: ${run.sent_messages}. Falhas: ${run.failed_messages}.`);
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao executar rotina');
@@ -114,17 +115,16 @@ export function AutomationPage() {
     setForm((value) => ({ ...value, days_of_week: Array.from(current).sort().join(',') }));
   }
 
-  if (loading) return <LoadingState label="Carregando automacao" />;
+  if (loading) return <LoadingState label="Carregando automação" />;
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-950">Automacao</h1>
-          <p className="text-sm text-slate-500">Rotinas automaticas de recalculo e disparo de WhatsApp</p>
-        </div>
-        <Button type="button" variant="secondary" onClick={load}><RefreshCw className="h-4 w-4" />Atualizar</Button>
-      </div>
+      <PageHeader
+        title="Automação"
+        eyebrow="Rotina diária"
+        description="Agende recálculo, disparos e acompanhe cada execução operacional."
+        actions={<Button type="button" variant="secondary" onClick={load}><RefreshCw className="h-4 w-4" />Atualizar</Button>}
+      />
       {error && <ErrorState message={error} />}
       {status && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{status}</div>}
 
@@ -147,7 +147,7 @@ export function AutomationPage() {
                   return <button key={day.value} type="button" className={`h-8 rounded-md border px-3 text-xs font-bold ${active ? 'border-accent bg-accent-soft text-accent-dark' : 'border-slate-200 bg-white text-slate-500'}`} onClick={() => toggleDay(day.value)}>{day.label}</button>;
                 })}
               </div>
-              <label className="flex items-center gap-2 text-sm font-semibold text-slate-600"><input type="checkbox" checked={form.allow_resend} onChange={(event) => setForm((value) => ({ ...value, allow_resend: event.target.checked }))} />Reenviar campanhas ja enviadas</label>
+              <label className="flex items-center gap-2 text-sm font-semibold text-slate-600"><input type="checkbox" checked={form.allow_resend} onChange={(event) => setForm((value) => ({ ...value, allow_resend: event.target.checked }))} />Reenviar campanhas já enviadas</label>
               <label className="flex items-center gap-2 text-sm font-semibold text-slate-600"><input type="checkbox" checked={form.enabled} onChange={(event) => setForm((value) => ({ ...value, enabled: event.target.checked }))} />Rotina ativa</label>
               <Button><Plus className="h-4 w-4" />Criar rotina</Button>
             </form>
@@ -155,7 +155,7 @@ export function AutomationPage() {
         </Card>
 
         <Card>
-          <CardHeader><h2 className="text-base font-bold text-slate-950">Rotinas automaticas</h2></CardHeader>
+          <CardHeader><h2 className="text-base font-bold text-slate-950">Rotinas automáticas</h2></CardHeader>
           <CardContent className="space-y-3">
             {schedules.length === 0 ? <EmptyState message="Nenhuma rotina configurada" /> : schedules.map((schedule) => (
               <div key={schedule.id} className="rounded-md border border-slate-100 p-3">
@@ -163,7 +163,7 @@ export function AutomationPage() {
                   <div>
                     <p className="font-semibold text-slate-950">{schedule.name}</p>
                     <p className="text-sm text-slate-500">{modeLabels[schedule.mode]} · {schedule.run_time} · {daysLabel(schedule.days_of_week)}</p>
-                    <p className="text-xs font-semibold text-slate-400">{schedule.last_run_at ? `Ultima execucao: ${formatDateTime(schedule.last_run_at)}` : 'Ainda nao executada'}</p>
+                    <p className="text-xs font-semibold text-slate-400">{schedule.last_run_at ? `Última execução: ${formatDateTime(schedule.last_run_at)}` : 'Ainda não executada'}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <StatusBadge value={schedule.enabled ? 'active' : 'inactive'} label={schedule.enabled ? 'Ativa' : 'Pausada'} />
@@ -179,9 +179,9 @@ export function AutomationPage() {
       </div>
 
       <Card>
-        <CardHeader><h2 className="text-base font-bold text-slate-950">Execucoes recentes</h2></CardHeader>
+        <CardHeader><h2 className="text-base font-bold text-slate-950">Execuções recentes</h2></CardHeader>
         <CardContent className="space-y-3">
-          {runs.length === 0 ? <EmptyState message="Nenhuma automacao registrada" /> : runs.map((run) => (
+          {runs.length === 0 ? <EmptyState message="Nenhuma automação registrada" /> : runs.map((run) => (
             <div key={run.id} className="rounded-md border border-slate-100 p-3">
               <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                 <div>
@@ -191,7 +191,7 @@ export function AutomationPage() {
                 <StatusBadge value={run.status === 'success' ? 'active' : run.status === 'failed' ? 'warning' : 'inactive'} label={statusLabel(run.status)} />
               </div>
               <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2 xl:grid-cols-5">
-                <Metric label="Importacao" value={run.imported ? 'Sim' : 'Nao'} />
+                <Metric label="Importação" value={run.imported ? 'Sim' : 'Não'} />
                 <Metric label="Campanhas" value={run.recalculated_campaigns} />
                 <Metric label="Mensagens" value={run.sent_messages} />
                 <Metric label="Falhas" value={run.failed_messages} />

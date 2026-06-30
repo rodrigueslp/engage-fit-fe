@@ -1,5 +1,6 @@
 import { Mail, Plus, Send } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
+import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
@@ -10,7 +11,7 @@ import type { Campaign, EmailCampaign, EmailCampaignPreview, EmailRecipient, Ema
 
 const templateVariables = ['{{name}}', '{{box_name}}', '{{campaign_name}}', '{{current_checkins}}', '{{remaining_checkins}}', '{{target_checkins}}', '{{reward_name}}', '{{platform}}'];
 const defaultSubject = '{{name}}, sua meta no {{box_name}}';
-const defaultContent = 'Ola, {{name}}! Voce esta com {{current_checkins}} check-ins na campanha {{campaign_name}}. Faltam {{remaining_checkins}} para atingir {{target_checkins}} e garantir {{reward_name}}.';
+const defaultContent = 'Olá, {{name}}! Você está com {{current_checkins}} check-ins na campanha {{campaign_name}}. Faltam {{remaining_checkins}} para atingir {{target_checkins}} e garantir {{reward_name}}.';
 
 export function EmailPage() {
   const [settings, setSettings] = useState<EmailSettings>();
@@ -65,9 +66,9 @@ export function EmailPage() {
       const saved = await api.updateEmailSettings(settingsForm);
       setSettings(saved);
       setSettingsForm((current) => ({ ...current, password: '' }));
-      setStatus('Configuracao de e-mail salva.');
+      setStatus('Configuração de e-mail salva.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar configuracao');
+      setError(err instanceof Error ? err.message : 'Erro ao salvar configuração');
     }
   }
 
@@ -75,9 +76,9 @@ export function EmailPage() {
     setError('');
     try {
       await api.testEmailSettings(settingsForm);
-      setStatus('Configuracao validada.');
+      setStatus('Configuração validada.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao testar configuracao');
+      setError(err instanceof Error ? err.message : 'Erro ao testar configuração');
     }
   }
 
@@ -129,6 +130,10 @@ export function EmailPage() {
       setStatus(`Envio finalizado: ${result.sent}/${result.total} enviados, ${result.failed} falhas.`);
       const recipients = latestRecipientBatch(await api.emailRecipients(campaignId));
       setRecipientsByCampaign((current) => ({ ...current, [campaignId]: recipients }));
+      const failedRecipient = recipients.find((recipient) => recipient.status === 'failed');
+      if (failedRecipient) {
+        setError('Falha no envio para ' + failedRecipient.email + ': ' + (failedRecipient.error_message || 'erro não informado pelo provedor'));
+      }
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao enviar campanha');
@@ -143,23 +148,20 @@ export function EmailPage() {
   }
 
   function goalCampaignName(campaignId: string) {
-    return goalCampaigns.find((campaign) => campaign.id === campaignId)?.name ?? 'Campanha nao selecionada';
+    return goalCampaigns.find((campaign) => campaign.id === campaignId)?.name ?? 'Campanha não selecionada';
   }
 
   if (loading) return <LoadingState label="Carregando e-mail" />;
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-950">E-mail</h1>
-        <p className="text-sm text-slate-500">Templates, campanhas e auditoria de disparos personalizados</p>
-      </div>
+      <PageHeader title="E-mail" eyebrow="Comunicação complementar" description="Configure SMTP/mock, crie templates e acompanhe campanhas com preview e auditoria." />
       {error && <ErrorState message={error} />}
       {status && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{status}</div>}
 
       <div className="grid gap-5 xl:grid-cols-2">
         <Card>
-          <CardHeader><h2 className="text-base font-bold text-slate-950">Configuracao SMTP</h2></CardHeader>
+          <CardHeader><h2 className="text-base font-bold text-slate-950">Configuração SMTP</h2></CardHeader>
           <CardContent>
             <form className="space-y-3" onSubmit={saveSettings}>
               <select className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm" value={settingsForm.provider} onChange={(event) => setSettingsForm((current) => ({ ...current, provider: event.target.value as 'smtp' | 'mock' }))}>
@@ -194,7 +196,7 @@ export function EmailPage() {
             <form className="space-y-3" onSubmit={createTemplate}>
               <Input placeholder="Nome do template" value={templateName} onChange={(event) => setTemplateName(event.target.value)} required />
               <Input placeholder="Assunto" value={templateSubject} onChange={(event) => setTemplateSubject(event.target.value)} required />
-              <Textarea placeholder="Conteudo" value={templateContent} onChange={(event) => setTemplateContent(event.target.value)} required />
+              <Textarea placeholder="Conteúdo" value={templateContent} onChange={(event) => setTemplateContent(event.target.value)} required />
               <div className="flex flex-wrap gap-2">
                 {templateVariables.map((variable) => <button key={variable} type="button" className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-600 hover:border-accent hover:text-accent-dark" onClick={() => setTemplateContent((content) => `${content} ${variable}`.trim())}>{variable}</button>)}
               </div>
@@ -221,7 +223,7 @@ export function EmailPage() {
             </select>
             <select className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm" value={audience} onChange={(event) => setAudience(event.target.value)}>
               <option value="almost_there">Falta pouco</option>
-              <option value="near_goal">Proximos da meta</option>
+              <option value="near_goal">Próximos da meta</option>
               <option value="achieved">Meta atingida</option>
               <option value="inactive">Inativos</option>
               <option value="all">Todos</option>
@@ -237,7 +239,7 @@ export function EmailPage() {
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <p className="font-semibold text-slate-950">{campaign.name}</p>
-                  <p className="text-sm text-slate-500">{campaign.audience} · {goalCampaignName(campaign.campaign_id)}</p>
+                  <p className="text-sm text-slate-500">{audienceLabel(campaign.audience)} · {goalCampaignName(campaign.campaign_id)}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" variant="secondary" onClick={() => previewCampaign(campaign.id)} disabled={previewingCampaignId === campaign.id}>{previewingCampaignId === campaign.id ? 'Gerando' : 'Preview'}</Button>
@@ -246,9 +248,9 @@ export function EmailPage() {
               </div>
               {previewsByCampaign[campaign.id] && (
                 <div className="space-y-2 rounded-md border border-accent/20 bg-accent-soft p-3">
-                  <div className="flex flex-col gap-1 text-xs font-semibold text-slate-600 md:flex-row md:items-center md:justify-between"><span>Preview com {previewsByCampaign[campaign.id].student_name || 'aluno exemplo'}</span><span>{previewsByCampaign[campaign.id].total} destinatarios</span></div>
+                  <div className="flex flex-col gap-1 text-xs font-semibold text-slate-600 md:flex-row md:items-center md:justify-between"><span>Preview com {previewsByCampaign[campaign.id].student_name || 'aluno exemplo'}</span><span>{previewsByCampaign[campaign.id].total} destinatários</span></div>
                   <p className="text-sm font-semibold text-slate-800">{previewsByCampaign[campaign.id].subject}</p>
-                  <p className="whitespace-pre-wrap text-sm text-slate-700">{previewsByCampaign[campaign.id].body || 'Nenhum destinatario encontrado.'}</p>
+                  <p className="whitespace-pre-wrap text-sm text-slate-700">{previewsByCampaign[campaign.id].body || 'Nenhum destinatário encontrado.'}</p>
                   {previewsByCampaign[campaign.id].email && <p className="text-xs font-semibold text-slate-500">E-mail exemplo: {previewsByCampaign[campaign.id].email}</p>}
                 </div>
               )}
@@ -264,4 +266,15 @@ export function EmailPage() {
       </Card>
     </div>
   );
+}
+
+function audienceLabel(audience: EmailCampaign['audience']) {
+  const labels: Record<EmailCampaign['audience'], string> = {
+    almost_there: 'Falta pouco',
+    near_goal: 'Próximos da meta',
+    achieved: 'Meta atingida',
+    inactive: 'Inativos',
+    all: 'Todos',
+  };
+  return labels[audience];
 }

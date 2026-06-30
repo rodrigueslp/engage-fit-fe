@@ -1,5 +1,6 @@
 import { Gift, Plus, Power, RefreshCw, Save, Target, Trophy } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Button } from '../../components/ui/button';
@@ -240,13 +241,12 @@ export function CampaignsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-950">Campanhas</h1>
-          <p className="mt-1 text-sm text-slate-500">Metas mensais por plataforma, brindes e acompanhamento de alunos.</p>
-        </div>
-        {selectedCampaign && <StatusBadge value={selectedCampaign.active ? 'active' : 'inactive'} label={selectedCampaign.active ? 'Ativa' : 'Encerrada'} />}
-      </div>
+      <PageHeader
+        title="Campanhas"
+        eyebrow="Metas e recompensas"
+        description="Crie campanhas mensais, acompanhe progresso individual e controle o estoque operacional de brindes."
+        actions={selectedCampaign && <StatusBadge value={selectedCampaign.active ? 'active' : 'inactive'} label={selectedCampaign.active ? 'Ativa' : 'Encerrada'} />}
+      />
 
       {error && <ErrorState message={error} />}
 
@@ -259,7 +259,7 @@ export function CampaignsPage() {
             <form className="space-y-4" onSubmit={create}>
               <div className="space-y-3">
                 <Input placeholder="Nome da campanha" value={name} onChange={(event) => setName(event.target.value)} required />
-                <Textarea placeholder="Descricao" value={description} onChange={(event) => setDescription(event.target.value)} />
+                <Textarea placeholder="Descrição" value={description} onChange={(event) => setDescription(event.target.value)} />
                 <div className="grid grid-cols-2 gap-3">
                   <Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} required />
                   <Input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} required />
@@ -290,7 +290,7 @@ export function CampaignsPage() {
                 </div>
                 <div className="space-y-3">
                   <Input placeholder="Nome do brinde" value={rewardName} onChange={(event) => setRewardName(event.target.value)} required />
-                  <Textarea placeholder="Descricao do brinde" value={rewardDescription} onChange={(event) => setRewardDescription(event.target.value)} />
+                  <Textarea placeholder="Descrição do brinde" value={rewardDescription} onChange={(event) => setRewardDescription(event.target.value)} />
                   <Input min="1" type="number" placeholder="Quantidade" value={rewardQuantity} onChange={(event) => setRewardQuantity(event.target.value)} required />
                 </div>
               </div>
@@ -336,7 +336,7 @@ export function CampaignsPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="font-semibold text-slate-950">{campaign.name}</p>
-                          <p className="mt-1 text-sm text-slate-500">{campaign.start_date} ate {campaign.end_date}</p>
+                          <p className="mt-1 text-sm text-slate-500">{campaign.start_date} até {campaign.end_date}</p>
                         </div>
                         <StatusBadge value={campaign.active ? 'active' : 'inactive'} label={campaign.active ? 'Ativa' : 'Encerrada'} />
                       </div>
@@ -467,7 +467,7 @@ function CampaignEditPanel({
       <CardContent className="space-y-4">
         <form className="grid gap-3 md:grid-cols-2" onSubmit={onSaveBasics}>
           <Input placeholder="Nome da campanha" value={name} onChange={(event) => onNameChange(event.target.value)} required />
-          <Textarea placeholder="Descricao" value={description} onChange={(event) => onDescriptionChange(event.target.value)} />
+          <Textarea placeholder="Descrição" value={description} onChange={(event) => onDescriptionChange(event.target.value)} />
           <Input type="date" value={startDate} onChange={(event) => onStartDateChange(event.target.value)} required />
           <Input type="date" value={endDate} onChange={(event) => onEndDateChange(event.target.value)} required />
           <div className="md:col-span-2">
@@ -497,7 +497,7 @@ function CampaignEditPanel({
 
         <form className="grid gap-3 md:grid-cols-[1fr_1fr_120px_auto]" onSubmit={onSaveReward}>
           <Input placeholder="Nome do brinde" value={rewardName} onChange={(event) => onRewardNameChange(event.target.value)} required />
-          <Input placeholder="Descricao do brinde" value={rewardDescription} onChange={(event) => onRewardDescriptionChange(event.target.value)} />
+          <Input placeholder="Descrição do brinde" value={rewardDescription} onChange={(event) => onRewardDescriptionChange(event.target.value)} />
           <Input min="1" type="number" value={rewardQuantity} onChange={(event) => onRewardQuantityChange(event.target.value)} required />
           <div className="flex items-end">
             <Button disabled={saving}>
@@ -547,7 +547,7 @@ function CampaignOperationalPanel({
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h2 className="text-base font-bold text-slate-950">{campaign.name}</h2>
-            <p className="mt-1 text-sm text-slate-500">{campaign.description || 'Campanha sem descricao'}</p>
+            <p className="mt-1 text-sm text-slate-500">{campaign.description || 'Campanha sem descrição'}</p>
           </div>
           <Button variant="secondary" onClick={onRecalculate} disabled={loading}>
             <RefreshCw className="h-4 w-4" />
@@ -564,14 +564,14 @@ function CampaignOperationalPanel({
               <Metric label="Wellhub" value={wellhub ? `${wellhub.target_checkins}` : '-'} />
               <Metric label="TotalPass" value={totalpass ? `${totalpass.target_checkins}` : '-'} />
               <Metric label="Atingiram" value={`${achieved}`} />
-              <Metric label="Proximos" value={`${nearGoal}`} />
+              <Metric label="Próximos" value={`${nearGoal}`} />
             </div>
 
             <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
               <div className="rounded-md border border-slate-200 p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <Trophy className="h-4 w-4 text-accent" />
-                  <h3 className="text-sm font-bold text-slate-950">Progresso da campanha</h3>
+                  <h3 className="text-sm font-bold text-slate-950">Progressó da campanha</h3>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                   <div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(averageProgress, 100)}%` }} />
@@ -595,7 +595,7 @@ function CampaignOperationalPanel({
                       return (
                         <div key={reward.id} className="rounded-md border border-slate-100 p-3">
                           <p className="font-semibold text-slate-950">{reward.name}</p>
-                          <p className="text-sm text-slate-500">{reward.description || 'Sem descricao'}</p>
+                          <p className="text-sm text-slate-500">{reward.description || 'Sem descrição'}</p>
                           <div className="mt-3 grid grid-cols-2 gap-2">
                             <RewardStockMetric label="Total" value={reward.quantity} />
                             <RewardStockMetric label="Disponiveis" value={available} />
@@ -610,8 +610,8 @@ function CampaignOperationalPanel({
               </div>
             </div>
 
-            <div className="rounded-md border border-slate-200">
-              <div className="grid grid-cols-[1fr_120px_110px_120px] border-b border-slate-100 px-4 py-3 text-xs font-bold uppercase text-slate-500">
+            <div className="overflow-x-auto rounded-md border border-slate-200">
+              <div className="grid min-w-[620px] grid-cols-[1fr_120px_110px_120px] border-b border-slate-100 px-4 py-3 text-xs font-bold uppercase text-slate-500">
                 <span>Aluno</span>
                 <span>Check-ins</span>
                 <span>Faltam</span>
@@ -623,14 +623,14 @@ function CampaignOperationalPanel({
                 </div>
               ) : (
                 details.progress.slice(0, 8).map((item) => (
-                  <div key={item.id} className="grid grid-cols-[1fr_120px_110px_120px] items-center border-b border-slate-100 px-4 py-3 last:border-b-0">
+                  <div key={item.id} className="grid min-w-[620px] grid-cols-[1fr_120px_110px_120px] items-center border-b border-slate-100 px-4 py-3 last:border-b-0">
                     <div>
                       <p className="text-sm font-semibold text-slate-950">{item.student_name ?? item.student_id}</p>
                       <p className="text-xs font-semibold text-slate-500">{item.student_source ?? 'plataforma'}</p>
                     </div>
                     <span className="text-sm text-slate-600">{item.current_checkins}/{item.target_checkins}</span>
                     <span className="text-sm text-slate-600">{item.remaining_checkins}</span>
-                    <StatusBadge value={item.achieved ? 'achieved' : item.near_goal ? 'near' : 'open'} label={item.achieved ? 'Meta' : item.near_goal ? 'Proximo' : 'Aberto'} />
+                    <StatusBadge value={item.achieved ? 'achieved' : item.near_goal ? 'near' : 'open'} label={item.achieved ? 'Meta' : item.near_goal ? 'Próximo' : 'Aberto'} />
                   </div>
                 ))
               )}

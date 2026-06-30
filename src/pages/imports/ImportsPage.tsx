@@ -19,7 +19,7 @@ export function ImportsPage() {
     api
       .imports()
       .then(setImports)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar importacoes'))
+      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar importações'))
       .finally(() => setLoading(false));
   }
 
@@ -65,13 +65,13 @@ export function ImportsPage() {
 
       <Card>
         <CardHeader>
-          <h2 className="text-base font-bold text-slate-950">Historico</h2>
+          <h2 className="text-base font-bold text-slate-950">Histórico</h2>
         </CardHeader>
         <CardContent>
           {loading ? (
             <LoadingState />
           ) : imports.length === 0 ? (
-            <EmptyState message="Nenhuma importacao realizada" />
+            <EmptyState message="Nenhuma importação realizada" />
           ) : (
             <div className="divide-y divide-slate-100">
               {imports.map((item) => (

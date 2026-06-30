@@ -20,6 +20,14 @@ body {
   min-width: 320px;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+table {
+  border-collapse: collapse;
+}
+
 button,
 input,
 textarea,

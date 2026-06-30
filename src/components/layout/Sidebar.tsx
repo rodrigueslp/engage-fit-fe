@@ -1,18 +1,5 @@
-import { BarChart3, Dumbbell, Gift, Mail, MessageCircle, RefreshCw, Settings, Target, Upload, Users } from 'lucide-react';
 import type { PageKey } from '../../app/App';
-
-const items = [
-  { key: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-  { key: 'campaigns', label: 'Campanhas', icon: Target },
-  { key: 'rewards', label: 'Brindes', icon: Gift },
-  { key: 'students', label: 'Alunos', icon: Users },
-  { key: 'imports', label: 'Importacoes', icon: Upload },
-  { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
-  { key: 'email', label: 'E-mail', icon: Mail },
-  { key: 'automation', label: 'Automacao', icon: RefreshCw },
-  { key: 'reports', label: 'Relatorios', icon: Dumbbell },
-  { key: 'settings', label: 'Configuracoes', icon: Settings },
-] as const;
+import { navItems } from './navItems';
 
 export function Sidebar({ currentPage, onNavigate }: { currentPage: PageKey; onNavigate: (page: PageKey) => void }) {
   return (
@@ -23,7 +10,7 @@ export function Sidebar({ currentPage, onNavigate }: { currentPage: PageKey; onN
         </button>
       </div>
       <nav className="space-y-1 p-3">
-        {items.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const active = currentPage === item.key;
           return (

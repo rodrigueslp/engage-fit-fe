@@ -23,7 +23,7 @@ export function AppLayout({
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar currentPage={currentPage} onNavigate={onNavigate} />
       <div className="min-w-0 flex-1">
-        <Header box={box} user={user} onImport={() => onNavigate('imports')} onLogout={onLogout} />
+        <Header currentPage={currentPage} box={box} user={user} onNavigate={onNavigate} onImport={() => onNavigate('imports')} onLogout={onLogout} />
         <main className="px-4 py-5 sm:px-6 lg:px-8">{children}</main>
       </div>
     </div>
