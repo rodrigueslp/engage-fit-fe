@@ -8,6 +8,7 @@ export const navItems: Array<{ key: PageKey; label: string; icon: typeof BarChar
   { key: 'students', label: 'Alunos', icon: Users },
   { key: 'imports', label: 'Importações', icon: Upload },
   { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
+  { key: 'workouts', label: 'Treino do dia', icon: Dumbbell },
   { key: 'email', label: 'E-mail', icon: Mail },
   { key: 'automation', label: 'Automação', icon: RefreshCw },
   { key: 'reports', label: 'Relatórios', icon: Dumbbell },

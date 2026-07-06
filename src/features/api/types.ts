@@ -269,3 +269,49 @@ export type AutomationSchedule = {
   created_at: string;
   updated_at: string;
 };
+
+export type Workout = {
+  id: string;
+  workout_date: string;
+  title: string;
+  goal: string;
+  movements: string;
+  coach_notes: string;
+  status: 'draft' | 'published';
+  created_at: string;
+  updated_at: string;
+};
+
+export type WorkoutDraft = {
+  id: string;
+  workout_id: string;
+  campaign_id?: string;
+  audience: 'near_goal' | 'almost_there' | 'achieved' | 'inactive' | 'all';
+  generated_body: string;
+  approved_body: string;
+  status: 'draft' | 'approved' | 'sent';
+  total_recipients: number;
+  sent_recipients: number;
+  failed_recipients: number;
+  generated_at: string;
+  approved_at?: string;
+  sent_at?: string;
+};
+
+export type WorkoutRecipient = {
+  id: string;
+  workout_message_draft_id: string;
+  student_id: string;
+  phone: string;
+  status: 'pending' | 'sent' | 'failed';
+  error_message?: string;
+  sent_at?: string;
+  created_at: string;
+};
+
+export type SendWorkoutDraftResult = {
+  total: number;
+  sent: number;
+  failed: number;
+};
+

@@ -27,6 +27,10 @@ import type {
   RewardDelivery,
   Student,
   WhatsappSettings,
+  Workout,
+  WorkoutDraft,
+  WorkoutRecipient,
+  SendWorkoutDraftResult,
 } from './types';
 
 export const api = {
@@ -176,6 +180,44 @@ export const api = {
       method: 'POST',
     }),
   emailRecipients: (campaignId: string) => apiRequest<EmailRecipient[]>(`/api/v1/email-campaigns/${campaignId}/recipients`),
+
+  workouts: () => apiRequest<Workout[]>('/api/v1/workouts'),
+  createWorkout: (payload: { workout_date: string; title: string; goal: string; movements: string; coach_notes: string; status: string }) =>
+    apiRequest<Workout>('/api/v1/workouts', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updateWorkout: (workoutId: string, payload: { workout_date: string; title: string; goal: string; movements: string; coach_notes: string; status: string }) =>
+    apiRequest<Workout>(`/api/v1/workouts/${workoutId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  deleteWorkout: (workoutId: string) =>
+    apiRequest<void>(`/api/v1/workouts/${workoutId}`, {
+      method: 'DELETE',
+    }),
+  workoutDrafts: (workoutId: string) => apiRequest<WorkoutDraft[]>(`/api/v1/workouts/${workoutId}/message-drafts`),
+  generateWorkoutDraft: (workoutId: string, payload: { audience: string; campaign_id: string; student_ids?: string[] }) =>
+    apiRequest<WorkoutDraft>(`/api/v1/workouts/${workoutId}/message-drafts`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updateWorkoutDraft: (draftId: string, payload: { approved_body: string }) =>
+    apiRequest<WorkoutDraft>(`/api/v1/workout-message-drafts/${draftId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  approveWorkoutDraft: (draftId: string, payload: { approved_body: string }) =>
+    apiRequest<WorkoutDraft>(`/api/v1/workout-message-drafts/${draftId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  sendWorkoutDraft: (draftId: string) =>
+    apiRequest<SendWorkoutDraftResult>(`/api/v1/workout-message-drafts/${draftId}/send`, {
+      method: 'POST',
+    }),
+  workoutRecipients: (draftId: string) => apiRequest<WorkoutRecipient[]>(`/api/v1/workout-message-drafts/${draftId}/recipients`),
+
   automationRuns: () => apiRequest<AutomationRun[]>('/api/v1/automation/runs'),
   automationSchedules: () => apiRequest<AutomationSchedule[]>('/api/v1/automation/schedules'),
   createAutomationSchedule: (payload: { name: string; mode: string; run_time: string; timezone: string; days_of_week: string; allow_resend: boolean; enabled: boolean }) =>

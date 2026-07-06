@@ -1,4 +1,4 @@
-import { Gift, Plus, Power, RefreshCw, Save, Target, Trophy } from 'lucide-react';
+import { ArrowLeft, Edit, Gift, List, Plus, Power, RefreshCw, Save, Target, Trophy } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
@@ -16,7 +16,10 @@ type CampaignDetails = {
   progress: CampaignProgress[];
 };
 
+type CampaignView = 'create' | 'list' | 'details';
+
 export function CampaignsPage() {
+  const [view, setView] = useState<CampaignView>('create');
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState('');
   const [details, setDetails] = useState<CampaignDetails>({ goals: [], rewards: [], progress: [] });
@@ -49,6 +52,10 @@ export function CampaignsPage() {
     () => campaigns.find((campaign) => campaign.id === selectedCampaignId),
     [campaigns, selectedCampaignId],
   );
+
+  const activeCampaigns = campaigns.filter((campaign) => campaign.active).length;
+  const closedCampaigns = campaigns.length - activeCampaigns;
+  const latestCampaign = campaigns[0];
 
   const achieved = details.progress.filter((item) => item.achieved).length;
   const nearGoal = details.progress.filter((item) => item.near_goal && !item.achieved).length;
@@ -128,6 +135,8 @@ export function CampaignsPage() {
       setRewardDescription('');
       setRewardQuantity('100');
       loadCampaigns(campaign.id);
+      setSelectedCampaignId(campaign.id);
+      setView('details');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao criar campanha');
     } finally {
@@ -239,152 +248,244 @@ export function CampaignsPage() {
     }
   }
 
+  function openCampaign(campaignId: string) {
+    setSelectedCampaignId(campaignId);
+    setView("details");
+  }
+
+  const headerActions = (
+    <>
+      {view !== "create" && (
+        <Button type="button" variant="secondary" onClick={() => setView("create")}>
+          <Plus className="h-4 w-4" />
+          Nova campanha
+        </Button>
+      )}
+      {view === "create" && (
+        <Button type="button" variant="secondary" onClick={() => setView("list")}>
+          <List className="h-4 w-4" />
+          Ver campanhas criadas
+        </Button>
+      )}
+      {view === "details" && (
+        <Button type="button" variant="ghost" onClick={() => setView("list")}>
+          <ArrowLeft className="h-4 w-4" />
+          Voltar para lista
+        </Button>
+      )}
+      {view === "details" && selectedCampaign && (
+        <StatusBadge value={selectedCampaign.active ? "active" : "inactive"} label={selectedCampaign.active ? "Ativa" : "Encerrada"} />
+      )}
+    </>
+  );
+
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <PageHeader
-        title="Campanhas"
+        title={view === "details" && selectedCampaign ? selectedCampaign.name : "Campanhas"}
         eyebrow="Metas e recompensas"
-        description="Crie campanhas mensais, acompanhe progresso individual e controle o estoque operacional de brindes."
-        actions={selectedCampaign && <StatusBadge value={selectedCampaign.active ? 'active' : 'inactive'} label={selectedCampaign.active ? 'Ativa' : 'Encerrada'} />}
+        description={
+          view === "create"
+            ? "Crie uma campanha completa com periodo, metas e brinde."
+            : view === "list"
+              ? "Escolha uma campanha para editar dados, acompanhar progresso ou operar brindes."
+              : "Ajuste metas, brinde, status operacional e acompanhe o progresso dos alunos."
+        }
+        actions={headerActions}
       />
 
       {error && <ErrorState message={error} />}
 
-      <div className="grid gap-5 xl:grid-cols-[420px_1fr]">
-        <Card>
-          <CardHeader>
-            <h2 className="text-base font-bold text-slate-950">Nova campanha</h2>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-4" onSubmit={create}>
-              <div className="space-y-3">
-                <Input placeholder="Nome da campanha" value={name} onChange={(event) => setName(event.target.value)} required />
-                <Textarea placeholder="Descrição" value={description} onChange={(event) => setDescription(event.target.value)} />
-                <div className="grid grid-cols-2 gap-3">
-                  <Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} required />
-                  <Input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} required />
-                </div>
-              </div>
-
-              <div className="rounded-md border border-slate-200 p-3">
-                <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-950">
-                  <Target className="h-4 w-4 text-accent" />
-                  Metas de check-in
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="space-y-1 text-xs font-semibold text-slate-500">
-                    Wellhub
-                    <Input min="1" type="number" value={wellhubGoal} onChange={(event) => setWellhubGoal(event.target.value)} required />
-                  </label>
-                  <label className="space-y-1 text-xs font-semibold text-slate-500">
-                    TotalPass
-                    <Input min="1" type="number" value={totalpassGoal} onChange={(event) => setTotalpassGoal(event.target.value)} required />
-                  </label>
-                </div>
-              </div>
-
-              <div className="rounded-md border border-slate-200 p-3">
-                <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-950">
-                  <Gift className="h-4 w-4 text-accent" />
-                  Brinde da campanha
-                </div>
-                <div className="space-y-3">
-                  <Input placeholder="Nome do brinde" value={rewardName} onChange={(event) => setRewardName(event.target.value)} required />
-                  <Textarea placeholder="Descrição do brinde" value={rewardDescription} onChange={(event) => setRewardDescription(event.target.value)} />
-                  <Input min="1" type="number" placeholder="Quantidade" value={rewardQuantity} onChange={(event) => setRewardQuantity(event.target.value)} required />
-                </div>
-              </div>
-
-              <Button disabled={submitting} className="w-full">
-                <Plus className="h-4 w-4" />
-                {submitting ? 'Criando' : 'Criar campanha completa'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-5">
+      {view === "create" && (
+        <div className="grid min-w-0 gap-5 2xl:grid-cols-[minmax(0,760px)_minmax(280px,1fr)]">
           <Card>
             <CardHeader>
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <h2 className="text-base font-bold text-slate-950">Campanhas criadas</h2>
-                <select
-                  className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm"
-                  value={selectedCampaignId}
-                  onChange={(event) => setSelectedCampaignId(event.target.value)}
-                >
-                  <option value="">Selecione</option>
-                  {campaigns.map((campaign) => <option key={campaign.id} value={campaign.id}>{campaign.name}</option>)}
-                </select>
-              </div>
+              <h2 className="text-base font-bold text-slate-950">Nova campanha</h2>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <LoadingState />
-              ) : campaigns.length === 0 ? (
-                <EmptyState message="Nenhuma campanha criada" />
-              ) : (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {campaigns.map((campaign) => (
-                    <button
-                      key={campaign.id}
-                      className={`rounded-md border p-4 text-left transition ${
-                        selectedCampaignId === campaign.id ? 'border-accent bg-accent-soft' : 'border-slate-200 bg-white hover:border-slate-300'
-                      }`}
-                      onClick={() => setSelectedCampaignId(campaign.id)}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-slate-950">{campaign.name}</p>
-                          <p className="mt-1 text-sm text-slate-500">{campaign.start_date} até {campaign.end_date}</p>
-                        </div>
-                        <StatusBadge value={campaign.active ? 'active' : 'inactive'} label={campaign.active ? 'Ativa' : 'Encerrada'} />
-                      </div>
-                    </button>
-                  ))}
+              <form className="space-y-4" onSubmit={create}>
+                <div className="space-y-3">
+                  <Input placeholder="Nome da campanha" value={name} onChange={(event) => setName(event.target.value)} required />
+                  <Textarea placeholder="Descrição" value={description} onChange={(event) => setDescription(event.target.value)} />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} required />
+                    <Input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} required />
+                  </div>
                 </div>
-              )}
+
+                <div className="rounded-md border border-slate-200 p-3">
+                  <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-950">
+                    <Target className="h-4 w-4 text-accent" />
+                    Metas de check-in
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="space-y-1 text-xs font-semibold text-slate-500">
+                      Wellhub
+                      <Input min="1" type="number" value={wellhubGoal} onChange={(event) => setWellhubGoal(event.target.value)} required />
+                    </label>
+                    <label className="space-y-1 text-xs font-semibold text-slate-500">
+                      TotalPass
+                      <Input min="1" type="number" value={totalpassGoal} onChange={(event) => setTotalpassGoal(event.target.value)} required />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="rounded-md border border-slate-200 p-3">
+                  <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-950">
+                    <Gift className="h-4 w-4 text-accent" />
+                    Brinde da campanha
+                  </div>
+                  <div className="space-y-3">
+                    <Input placeholder="Nome do brinde" value={rewardName} onChange={(event) => setRewardName(event.target.value)} required />
+                    <Textarea placeholder="Descrição do brinde" value={rewardDescription} onChange={(event) => setRewardDescription(event.target.value)} />
+                    <Input min="1" type="number" placeholder="Quantidade" value={rewardQuantity} onChange={(event) => setRewardQuantity(event.target.value)} required />
+                  </div>
+                </div>
+
+                <Button disabled={submitting} className="w-full">
+                  <Plus className="h-4 w-4" />
+                  {submitting ? "Criando" : "Criar campanha completa"}
+                </Button>
+              </form>
             </CardContent>
           </Card>
 
-          <CampaignEditPanel
-            campaign={selectedCampaign}
-            saving={savingDetails}
-            name={editName}
-            description={editDescription}
-            startDate={editStartDate}
-            endDate={editEndDate}
-            wellhubGoal={editWellhubGoal}
-            totalpassGoal={editTotalpassGoal}
-            rewardName={editRewardName}
-            rewardDescription={editRewardDescription}
-            rewardQuantity={editRewardQuantity}
-            onNameChange={setEditName}
-            onDescriptionChange={setEditDescription}
-            onStartDateChange={setEditStartDate}
-            onEndDateChange={setEditEndDate}
-            onWellhubGoalChange={setEditWellhubGoal}
-            onTotalpassGoalChange={setEditTotalpassGoal}
-            onRewardNameChange={setEditRewardName}
-            onRewardDescriptionChange={setEditRewardDescription}
-            onRewardQuantityChange={setEditRewardQuantity}
-            onSaveBasics={saveCampaignBasics}
-            onSaveGoals={saveCampaignGoals}
-            onSaveReward={saveCampaignReward}
-            onToggleActive={toggleCampaignActive}
-          />
-
-          <CampaignOperationalPanel
-            campaign={selectedCampaign}
-            details={details}
-            loading={detailsLoading}
-            achieved={achieved}
-            nearGoal={nearGoal}
-            averageProgress={averageProgress}
-            onRecalculate={recalculate}
-          />
+          <Card>
+            <CardHeader>
+              <h2 className="text-base font-bold text-slate-950">Campanhas criadas</h2>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {loading ? (
+                <LoadingState />
+              ) : (
+                <>
+                  <div className="grid gap-3 sm:grid-cols-3 2xl:grid-cols-1">
+                    <Metric label="Total" value={String(campaigns.length)} />
+                    <Metric label="Ativas" value={String(activeCampaigns)} />
+                    <Metric label="Encerradas" value={String(closedCampaigns)} />
+                  </div>
+                  {latestCampaign && (
+                    <button
+                      type="button"
+                      className="w-full rounded-md border border-slate-200 bg-white p-4 text-left transition hover:border-slate-300"
+                      onClick={() => openCampaign(latestCampaign.id)}
+                    >
+                      <div className="flex min-w-0 items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-slate-950">{latestCampaign.name}</p>
+                          <p className="mt-1 text-sm text-slate-500">{latestCampaign.start_date} até {latestCampaign.end_date}</p>
+                        </div>
+                        <StatusBadge value={latestCampaign.active ? "active" : "inactive"} label={latestCampaign.active ? "Ativa" : "Encerrada"} />
+                      </div>
+                    </button>
+                  )}
+                  <Button type="button" variant="secondary" className="w-full" onClick={() => setView("list")}>
+                    <List className="h-4 w-4" />
+                    Ver campanhas criadas
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </div>
-      </div>
+      )}
+
+      {view === "list" && (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-base font-bold text-slate-950">Campanhas criadas</h2>
+                <p className="text-sm text-slate-500">{campaigns.length} campanhas no total, {activeCampaigns} ativas.</p>
+              </div>
+              <Button type="button" onClick={() => setView("create")}>
+                <Plus className="h-4 w-4" />
+                Nova campanha
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <LoadingState />
+            ) : campaigns.length === 0 ? (
+              <EmptyState message="Nenhuma campanha criada" />
+            ) : (
+              <div className="grid min-w-0 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+                {campaigns.map((campaign) => (
+                  <button
+                    key={campaign.id}
+                    type="button"
+                    className="min-w-0 rounded-md border border-slate-200 bg-white p-4 text-left transition hover:border-accent hover:bg-accent-soft"
+                    onClick={() => openCampaign(campaign.id)}
+                  >
+                    <div className="flex min-w-0 items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-slate-950">{campaign.name}</p>
+                        <p className="mt-1 text-sm text-slate-500">{campaign.start_date} até {campaign.end_date}</p>
+                        {campaign.description && <p className="mt-3 line-clamp-2 text-sm text-slate-600">{campaign.description}</p>}
+                      </div>
+                      <StatusBadge value={campaign.active ? "active" : "inactive"} label={campaign.active ? "Ativa" : "Encerrada"} />
+                    </div>
+                    <div className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-accent-dark">
+                      <Edit className="h-4 w-4" />
+                      Abrir detalhes
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {view === "details" && (
+        selectedCampaign ? (
+          <div className="min-w-0 space-y-5">
+            <CampaignEditPanel
+              campaign={selectedCampaign}
+              saving={savingDetails}
+              name={editName}
+              description={editDescription}
+              startDate={editStartDate}
+              endDate={editEndDate}
+              wellhubGoal={editWellhubGoal}
+              totalpassGoal={editTotalpassGoal}
+              rewardName={editRewardName}
+              rewardDescription={editRewardDescription}
+              rewardQuantity={editRewardQuantity}
+              onNameChange={setEditName}
+              onDescriptionChange={setEditDescription}
+              onStartDateChange={setEditStartDate}
+              onEndDateChange={setEditEndDate}
+              onWellhubGoalChange={setEditWellhubGoal}
+              onTotalpassGoalChange={setEditTotalpassGoal}
+              onRewardNameChange={setEditRewardName}
+              onRewardDescriptionChange={setEditRewardDescription}
+              onRewardQuantityChange={setEditRewardQuantity}
+              onSaveBasics={saveCampaignBasics}
+              onSaveGoals={saveCampaignGoals}
+              onSaveReward={saveCampaignReward}
+              onToggleActive={toggleCampaignActive}
+            />
+
+            <CampaignOperationalPanel
+              campaign={selectedCampaign}
+              details={details}
+              loading={detailsLoading}
+              achieved={achieved}
+              nearGoal={nearGoal}
+              averageProgress={averageProgress}
+              onRecalculate={recalculate}
+            />
+          </div>
+        ) : (
+          <Card>
+            <CardContent>
+              <EmptyState message="Selecione uma campanha para ver os detalhes" />
+            </CardContent>
+          </Card>
+        )
+      )}
     </div>
   );
 }
@@ -478,7 +579,7 @@ function CampaignEditPanel({
           </div>
         </form>
 
-        <form className="grid gap-3 md:grid-cols-[1fr_1fr_auto]" onSubmit={onSaveGoals}>
+        <form className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]" onSubmit={onSaveGoals}>
           <label className="space-y-1 text-xs font-semibold text-slate-500">
             Meta Wellhub
             <Input min="1" type="number" value={wellhubGoal} onChange={(event) => onWellhubGoalChange(event.target.value)} required />
@@ -488,19 +589,19 @@ function CampaignEditPanel({
             <Input min="1" type="number" value={totalpassGoal} onChange={(event) => onTotalpassGoalChange(event.target.value)} required />
           </label>
           <div className="flex items-end">
-            <Button disabled={saving}>
+            <Button className="w-full lg:w-auto" disabled={saving}>
               <Save className="h-4 w-4" />
               Salvar metas
             </Button>
           </div>
         </form>
 
-        <form className="grid gap-3 md:grid-cols-[1fr_1fr_120px_auto]" onSubmit={onSaveReward}>
+        <form className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px_auto]" onSubmit={onSaveReward}>
           <Input placeholder="Nome do brinde" value={rewardName} onChange={(event) => onRewardNameChange(event.target.value)} required />
           <Input placeholder="Descrição do brinde" value={rewardDescription} onChange={(event) => onRewardDescriptionChange(event.target.value)} />
           <Input min="1" type="number" value={rewardQuantity} onChange={(event) => onRewardQuantityChange(event.target.value)} required />
           <div className="flex items-end">
-            <Button disabled={saving}>
+            <Button className="w-full lg:w-auto" disabled={saving}>
               <Save className="h-4 w-4" />
               Salvar brinde
             </Button>

@@ -254,17 +254,33 @@ export function WhatsappPage() {
           </form>
           {campaigns.length === 0 ? <EmptyState message="Nenhuma campanha de mensagem" /> : campaigns.map((campaign) => (
             <div key={campaign.id} className="space-y-3 rounded-md border border-slate-100 p-3">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <p className="font-semibold text-slate-950">{campaign.name}</p>
-                  <p className="text-sm text-slate-500">{audienceLabel(campaign.audience)} · {goalCampaignName(campaign.campaign_id)}</p>
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                <div className="min-w-0">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <p className="min-w-0 truncate font-semibold text-slate-950">{campaign.name}</p>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
+                      {campaign.sent_at ? 'Enviada' : 'Rascunho'}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-slate-500">{audienceLabel(campaign.audience)} · {goalCampaignName(campaign.campaign_id)}</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <p className="text-xs font-semibold text-slate-500">{campaign.sent_at ? 'Enviada' : 'Rascunho'}</p>
-                  <Button type="button" variant="secondary" onClick={() => previewCampaign(campaign.id)} disabled={previewingCampaignId === campaign.id}>
+                <div className="grid grid-cols-2 gap-2 sm:w-[220px]">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => previewCampaign(campaign.id)}
+                    disabled={previewingCampaignId === campaign.id}
+                  >
                     {previewingCampaignId === campaign.id ? 'Gerando' : 'Preview'}
                   </Button>
-                  <Button type="button" variant="secondary" onClick={() => sendCampaign(campaign.id)} disabled={sendingCampaignId === campaign.id}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => sendCampaign(campaign.id)}
+                    disabled={sendingCampaignId === campaign.id}
+                  >
                     <MessageCircle className="h-4 w-4" />
                     {sendingCampaignId === campaign.id ? 'Enviando' : campaign.sent_at ? 'Reenviar' : 'Enviar'}
                   </Button>
