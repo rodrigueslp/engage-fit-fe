@@ -1,9 +1,9 @@
 import { LogOut, Menu, Upload, X } from 'lucide-react';
 import { useState } from 'react';
 import type { PageKey } from '../../app/App';
-import type { Box, CurrentUser } from '../../features/api/types';
+import type { Box, Capabilities, CurrentUser } from '../../features/api/types';
 import { Button } from '../ui/button';
-import { navItems } from './navItems';
+import { navItemsForRole } from './navItems';
 
 export function Header({
   currentPage,
@@ -12,6 +12,7 @@ export function Header({
   onNavigate,
   onImport,
   onLogout,
+  capabilities,
 }: {
   currentPage: PageKey;
   box?: Box;
@@ -19,8 +20,10 @@ export function Header({
   onNavigate: (page: PageKey) => void;
   onImport: () => void;
   onLogout: () => void;
+  capabilities: Capabilities;
 }) {
   const [open, setOpen] = useState(false);
+  const navItems = navItemsForRole(user?.role, capabilities);
 
   function navigate(page: PageKey) {
     onNavigate(page);
@@ -40,10 +43,12 @@ export function Header({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={onImport}>
-            <Upload className="h-4 w-4" />
-            <span className="hidden sm:inline">Importar</span>
-          </Button>
+          {user?.role !== 'PLATFORM_ADMIN' && (
+            <Button variant="secondary" onClick={onImport}>
+              <Upload className="h-4 w-4" />
+              <span className="hidden sm:inline">Importar</span>
+            </Button>
+          )}
           <Button variant="ghost" onClick={onLogout} aria-label="Sair">
             <LogOut className="h-4 w-4" />
           </Button>

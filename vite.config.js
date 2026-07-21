@@ -1,3 +1,4 @@
+var _a;
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 export default defineConfig({
@@ -5,7 +6,7 @@ export default defineConfig({
     server: {
         port: 5173,
         proxy: {
-            '/api': 'http://localhost:8080',
+            '/api': (_a = process.env.VITE_DEV_API_PROXY_TARGET) !== null && _a !== void 0 ? _a : 'http://localhost:8080',
         },
     },
 });

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { api } from '../../features/api/endpoints';
 import type { Student } from '../../features/api/types';
@@ -11,6 +12,7 @@ export function StudentsPage() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+	const [processingId, setProcessingId] = useState('');
 
   useEffect(() => {
     api
@@ -24,6 +26,53 @@ export function StudentsPage() {
     const query = search.toLowerCase();
     return students.filter((student) => [student.name, student.email, student.phone].join(' ').toLowerCase().includes(query));
   }, [students, search]);
+
+  async function updateContact(student: Student, status: Student['contact_status']) {
+    setProcessingId(student.id);
+    setError('');
+    try {
+      await api.updateStudentContactPreference(student.id, status, 'owner_dashboard');
+      setStudents((current) => current.map((item) => item.id === student.id ? { ...item, contact_status: status } : item));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao atualizar preferência de contato');
+    } finally {
+      setProcessingId('');
+    }
+  }
+
+  async function exportData(student: Student) {
+    setProcessingId(student.id);
+    setError('');
+    try {
+      const blob = await api.exportStudentData(student.id);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `dados-${student.id}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao exportar dados');
+    } finally {
+      setProcessingId('');
+    }
+  }
+
+  async function anonymize(student: Student) {
+    const reason = window.prompt(`Motivo da anonimização de ${student.name}:`);
+    if (!reason || reason.trim().length < 5) return;
+    if (!window.confirm('Esta ação remove os dados pessoais e não pode ser desfeita. Continuar?')) return;
+    setProcessingId(student.id);
+    setError('');
+    try {
+      await api.anonymizeStudent(student.id, reason.trim());
+      setStudents((current) => current.map((item) => item.id === student.id ? { ...item, name: 'Aluno anonimizado', email: '', phone: '', contact_status: 'opted_out', anonymized_at: new Date().toISOString() } : item));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao anonimizar aluno');
+    } finally {
+      setProcessingId('');
+    }
+  }
 
   return (
     <Card>
@@ -50,6 +99,8 @@ export function StudentsPage() {
                   <th>Email</th>
                   <th>Telefone</th>
                   <th>Origem</th>
+                  <th>Contato</th>
+                  <th className="text-right">Privacidade</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -59,6 +110,24 @@ export function StudentsPage() {
                     <td className="text-slate-600">{student.email}</td>
                     <td className="text-slate-600">{student.phone}</td>
                     <td><StatusBadge value={student.source} label={student.source} /></td>
+                    <td>
+                      <select
+                        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm"
+                        value={student.contact_status || 'unknown'}
+                        disabled={processingId === student.id || Boolean(student.anonymized_at)}
+                        onChange={(event) => void updateContact(student, event.target.value as Student['contact_status'])}
+                      >
+                        <option value="unknown">Não informado</option>
+                        <option value="opted_in">Autorizado</option>
+                        <option value="opted_out">Não contatar</option>
+                      </select>
+                    </td>
+                    <td>
+                      <div className="flex justify-end gap-2">
+                        <Button type="button" variant="secondary" disabled={processingId === student.id} onClick={() => void exportData(student)}>Exportar</Button>
+                        {!student.anonymized_at && <Button type="button" variant="secondary" className="text-red-700" disabled={processingId === student.id} onClick={() => void anonymize(student)}>Anonimizar</Button>}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

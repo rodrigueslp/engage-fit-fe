@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AppLayout } from '../components/layout/AppLayout';
-import { clearToken, getToken } from '../features/api/client';
 import { api } from '../features/api/endpoints';
-import type { Box, CurrentUser } from '../features/api/types';
+import type { Box, Capabilities, CurrentUser } from '../features/api/types';
 import { AutomationPage } from '../pages/automation/AutomationPage';
 import { CampaignsPage } from '../pages/campaigns/CampaignsPage';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
@@ -17,10 +16,11 @@ import { WhatsappPage } from '../pages/whatsapp/WhatsappPage';
 import { WorkoutsPage } from '../pages/workouts/WorkoutsPage';
 import { LoadingState } from '../components/common/State';
 import { ShowcasePage } from '../pages/showcase/ShowcasePage';
+import { MessagingGovernancePage } from '../pages/admin/MessagingGovernancePage';
 
-export type PageKey = 'showcase' | 'dashboard' | 'campaigns' | 'rewards' | 'students' | 'imports' | 'whatsapp' | 'workouts' | 'email' | 'automation' | 'reports' | 'settings';
+export type PageKey = 'showcase' | 'dashboard' | 'campaigns' | 'rewards' | 'students' | 'imports' | 'whatsapp' | 'workouts' | 'email' | 'automation' | 'reports' | 'settings' | 'admin-messaging';
 
-const pageKeys: PageKey[] = ['showcase', 'dashboard', 'campaigns', 'rewards', 'students', 'imports', 'whatsapp', 'workouts', 'email', 'automation', 'reports', 'settings'];
+const pageKeys: PageKey[] = ['showcase', 'dashboard', 'campaigns', 'rewards', 'students', 'imports', 'whatsapp', 'workouts', 'email', 'automation', 'reports', 'settings', 'admin-messaging'];
 
 function pageFromHash(): PageKey {
   const hashPage = window.location.hash.replace(/^#\/?/, '');
@@ -32,18 +32,21 @@ export function App() {
   const [user, setUser] = useState<CurrentUser>();
   const [box, setBox] = useState<Box>();
   const [checkingSession, setCheckingSession] = useState(true);
+  const [capabilities, setCapabilities] = useState<Capabilities>({ whatsapp: false, email: false, automation: false, workouts: false, llm: false });
 
   async function loadSession() {
-    if (!getToken()) {
-      setCheckingSession(false);
-      return;
-    }
+    const enabled = await api.capabilities().catch(() => ({ whatsapp: false, email: false, automation: false, workouts: false, llm: false }));
+    setCapabilities(enabled);
     try {
-      const [currentUser, currentBox] = await Promise.all([api.me(), api.box()]);
+      const currentUser = await api.me();
+      const currentBox = currentUser.role === 'PLATFORM_ADMIN' ? undefined : await api.box();
       setUser(currentUser);
       setBox(currentBox);
+      if (currentUser.role === 'PLATFORM_ADMIN' && pageFromHash() !== 'admin-messaging') {
+        window.location.hash = 'admin-messaging';
+        setPage('admin-messaging');
+      }
     } catch {
-      clearToken();
       setUser(undefined);
       setBox(undefined);
     } finally {
@@ -54,6 +57,17 @@ export function App() {
   useEffect(() => {
     loadSession();
   }, []);
+
+  useEffect(() => {
+    const disabled = (page === 'whatsapp' && !capabilities.whatsapp)
+      || (page === 'automation' && !capabilities.automation)
+      || (page === 'email' && !capabilities.email)
+      || (page === 'workouts' && !capabilities.workouts);
+    if (disabled) {
+      window.location.hash = 'dashboard';
+      setPage('dashboard');
+    }
+  }, [page, capabilities]);
 
   useEffect(() => {
     function handleHashChange() {
@@ -81,29 +95,34 @@ export function App() {
   }
 
   function logout() {
-    clearToken();
+    void api.logout().catch(() => undefined);
     setUser(undefined);
     setBox(undefined);
   }
 
   function navigate(nextPage: PageKey) {
+    if (nextPage === 'whatsapp' && !capabilities.whatsapp) nextPage = 'dashboard';
+    if (nextPage === 'automation' && !capabilities.automation) nextPage = 'dashboard';
+    if (nextPage === 'email' && !capabilities.email) nextPage = 'dashboard';
+    if (nextPage === 'workouts' && !capabilities.workouts) nextPage = 'dashboard';
     setPage(nextPage);
     window.location.hash = nextPage;
   }
 
   return (
-    <AppLayout currentPage={page} onNavigate={navigate} box={box} user={user} onLogout={logout}>
+    <AppLayout currentPage={page} onNavigate={navigate} box={box} user={user} onLogout={logout} capabilities={capabilities}>
       {page === 'dashboard' && <DashboardPage />}
       {page === 'campaigns' && <CampaignsPage />}
       {page === 'rewards' && <RewardsPage />}
       {page === 'students' && <StudentsPage />}
       {page === 'imports' && <ImportsPage />}
-      {page === 'whatsapp' && <WhatsappPage />}
-      {page === 'workouts' && <WorkoutsPage />}
-      {page === 'email' && <EmailPage />}
-      {page === 'automation' && <AutomationPage />}
+      {page === 'whatsapp' && capabilities.whatsapp && <WhatsappPage />}
+      {page === 'workouts' && capabilities.workouts && <WorkoutsPage />}
+      {page === 'email' && capabilities.email && <EmailPage />}
+      {page === 'automation' && capabilities.automation && <AutomationPage />}
       {page === 'reports' && <ReportsPage />}
-      {page === 'settings' && <SettingsPage />}
+      {page === 'settings' && <SettingsPage whatsappEnabled={capabilities.whatsapp} onSessionRevoked={() => { setUser(undefined); setBox(undefined); }} />}
+      {page === 'admin-messaging' && user.role === 'PLATFORM_ADMIN' && <MessagingGovernancePage whatsappEnabled={capabilities.whatsapp} />}
     </AppLayout>
   );
 }

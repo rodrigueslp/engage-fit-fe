@@ -2,7 +2,6 @@ import { FormEvent, useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { api } from '../../features/api/endpoints';
-import { setToken } from '../../features/api/client';
 import { ErrorState } from '../../components/common/State';
 
 export function LoginPage({ onLogin }: { onLogin: () => void }) {
@@ -16,8 +15,7 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
     setLoading(true);
     setError('');
     try {
-      const response = await api.login(email, password);
-      setToken(response.access_token);
+      await api.login(email, password);
       onLogin();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao entrar');
@@ -36,12 +34,12 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
         <form className="space-y-4" onSubmit={submit}>
           {error && <ErrorState message={error} />}
           <div>
-            <label className="mb-1 block text-sm font-semibold text-slate-700">Email</label>
-            <Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+            <label htmlFor="login-email" className="mb-1 block text-sm font-semibold text-slate-700">Email</label>
+            <Input id="login-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-semibold text-slate-700">Senha</label>
-            <Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+            <label htmlFor="login-password" className="mb-1 block text-sm font-semibold text-slate-700">Senha</label>
+            <Input id="login-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
           </div>
           <Button className="w-full" disabled={loading}>
             {loading ? 'Entrando' : 'Entrar'}

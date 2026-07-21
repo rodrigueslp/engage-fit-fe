@@ -36,7 +36,7 @@ export function WorkoutsPage() {
 
   const filteredStudents = useMemo(() => {
     const query = studentSearch.toLowerCase().trim();
-    const withPhone = students.filter((student) => student.phone.trim() !== '');
+    const withPhone = students.filter((student) => student.phone.trim() !== '' && student.contact_status !== 'opted_out' && !student.anonymized_at);
     if (!query) return withPhone.slice(0, 12);
     return withPhone
       .filter((student) => [student.name, student.email, student.phone].join(' ').toLowerCase().includes(query))

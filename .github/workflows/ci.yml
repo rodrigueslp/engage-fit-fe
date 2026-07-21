@@ -1,0 +1,79 @@
+name: Frontend CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: boxengage_e2e
+          POSTGRES_USER: boxengage
+          POSTGRES_PASSWORD: boxengage
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U boxengage -d boxengage_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e -- tests/ui-security.spec.ts
+      - uses: actions/checkout@v4
+        with:
+          repository: rodrigueslp/engage-fit-be
+          path: backend
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.x"
+          cache-dependency-path: backend/go.sum
+      - name: Real browser E2E with PostgreSQL
+        env:
+          DATABASE_URL: postgres://boxengage:boxengage@localhost:5432/boxengage_e2e?sslmode=disable
+          APP_ENV: development
+          HTTP_PORT: "18084"
+          OWNER_SETUP_ENABLED: "true"
+          AUTOMATION_WORKER_ENABLED: "false"
+          WHATSAPP_ALLOW_REAL_SEND: "false"
+          EMAIL_ALLOW_REAL_SEND: "false"
+          FEATURE_WHATSAPP_ENABLED: "false"
+          FEATURE_EMAIL_ENABLED: "false"
+          FEATURE_AUTOMATION_ENABLED: "false"
+          FEATURE_WORKOUTS_ENABLED: "false"
+          FEATURE_LLM_ENABLED: "false"
+          PROMETHEUS_ENABLED: "false"
+          JWT_SECRET: local-e2e-secret-not-for-production-123
+          PLATFORM_ADMIN_NAME: E2E Admin
+          PLATFORM_ADMIN_EMAIL: e2e-admin@example.test
+          PLATFORM_ADMIN_PASSWORD: E2E-platform-admin-password-2026!
+          E2E_API_URL: http://127.0.0.1:18084
+          E2E_ADMIN_EMAIL: e2e-admin@example.test
+          E2E_ADMIN_PASSWORD: E2E-platform-admin-password-2026!
+        run: |
+          (cd backend && go run ./cmd/migrate up)
+          (cd backend && go run ./cmd/api > api-e2e.log 2>&1) &
+          API_PID=$!
+          trap 'kill "$API_PID" 2>/dev/null || true; cat backend/api-e2e.log' EXIT
+          for attempt in $(seq 1 30); do
+            curl --fail --silent http://localhost:18084/health/ready && break
+            sleep 1
+          done
+          curl --fail --silent http://localhost:18084/health/ready
+          npm run test:e2e:real

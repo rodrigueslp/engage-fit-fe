@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "node node_modules/vite/bin/vite.js --host 0.0.0.0",
     "build": "node node_modules/typescript/lib/tsc.js -b && node node_modules/vite/bin/vite.js build",
-    "preview": "node node_modules/vite/bin/vite.js preview --host 0.0.0.0"
+    "preview": "node node_modules/vite/bin/vite.js preview --host 0.0.0.0",
+    "test:e2e": "playwright test",
+    "test:e2e:real": "E2E_REAL_API=true playwright test tests/real-flow.spec.ts"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
@@ -20,6 +22,7 @@
     "vite": "^6.0.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2"

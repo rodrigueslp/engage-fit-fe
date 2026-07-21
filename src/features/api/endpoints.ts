@@ -23,6 +23,7 @@ import type {
   SendMessageCampaignResult,
   SendEmailCampaignResult,
   MessageTemplate,
+  OfficialWhatsappTemplatePreview,
   Reward,
   RewardDelivery,
   Student,
@@ -31,9 +32,16 @@ import type {
   WorkoutDraft,
   WorkoutRecipient,
   SendWorkoutDraftResult,
+  MessagingPolicy,
+  MessagingPolicyWithUsage,
+  MessagingBoxOverview,
+  Capabilities,
 } from './types';
 
+export type MessagingPolicyPayload = Omit<MessagingPolicy, 'id' | 'scope' | 'box_id' | 'updated_at'> & { reason: string };
+
 export const api = {
+  capabilities: () => apiRequest<Capabilities>('/api/v1/capabilities', { auth: false }),
   login: (email: string, password: string) =>
     apiRequest<LoginResponse>('/api/v1/auth/login', {
       method: 'POST',
@@ -41,6 +49,9 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
   me: () => apiRequest<CurrentUser>('/api/v1/auth/me'),
+  logout: () => apiRequest<void>('/api/v1/auth/logout', { method: 'POST' }),
+  changePassword: (payload: { current_password: string; new_password: string }) =>
+    apiRequest<void>('/api/v1/auth/password', { method: 'PUT', body: JSON.stringify(payload) }),
   box: () => apiRequest<Box>('/api/v1/box'),
   updateBox: (payload: { name: string; risk_inactive_days: number; risk_message_cooldown_days: number }) =>
     apiRequest<Box>('/api/v1/box', {
@@ -62,6 +73,17 @@ export const api = {
     apiRequest<void>(`/api/v1/students/${studentId}/risk-status`, {
       method: 'PATCH',
       body: JSON.stringify({ risk_status: riskStatus }),
+    }),
+  exportStudentData: (studentId: string) => apiDownload(`/api/v1/students/${studentId}/privacy-export`),
+  updateStudentContactPreference: (studentId: string, status: Student['contact_status'], source: string) =>
+    apiRequest<void>(`/api/v1/students/${studentId}/contact-preference`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, source }),
+    }),
+  anonymizeStudent: (studentId: string, reason: string) =>
+    apiRequest<void>(`/api/v1/students/${studentId}/anonymize`, {
+      method: 'POST',
+      body: JSON.stringify({ confirmed: true, reason }),
     }),
   imports: () => apiRequest<ImportHistory[]>('/api/v1/imports'),
   uploadImport: (formData: FormData) =>
@@ -112,12 +134,12 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   whatsappSettings: () => apiRequest<WhatsappSettings>('/api/v1/whatsapp/settings'),
-  updateWhatsappSettings: (payload: { provider: 'twilio' | 'meta_cloud'; base_url: string; instance_name: string; api_key: string; enabled: boolean }) =>
+  updateWhatsappSettings: (payload: { connection_mode: 'platform' | 'dedicated'; provider: 'twilio' | 'meta_cloud'; base_url: string; instance_name: string; api_key: string; enabled: boolean }) =>
     apiRequest<WhatsappSettings>('/api/v1/whatsapp/settings', {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
-  testWhatsappSettings: (payload?: { provider: 'twilio' | 'meta_cloud'; base_url: string; instance_name: string; api_key: string; enabled: boolean }) =>
+  testWhatsappSettings: (payload?: { connection_mode: 'platform' | 'dedicated'; provider: 'twilio' | 'meta_cloud'; base_url: string; instance_name: string; api_key: string; enabled: boolean }) =>
     apiRequest<void>('/api/v1/whatsapp/settings/test', {
       method: 'POST',
       body: payload ? JSON.stringify(payload) : undefined,
@@ -128,23 +150,38 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
-  updateTemplate: (templateId: string, payload: { name: string; content: string; content_sid: string }) =>
+  updateTemplate: (templateId: string, payload: { content_sid: string; approval_status: string }) =>
     apiRequest<MessageTemplate>(`/api/v1/message-templates/${templateId}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
   messageCampaigns: () => apiRequest<MessageCampaign[]>('/api/v1/message-campaigns'),
-  createMessageCampaign: (payload: { name: string; campaign_id: string; audience: string; template_id: string }) =>
+  createMessageCampaign: (payload: { name: string; campaign_id: string; audience?: string; template_id?: string; template_type?: string }) =>
     apiRequest<MessageCampaign>('/api/v1/message-campaigns', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
   messageCampaignPreview: (campaignId: string) => apiRequest<MessageCampaignPreview>(`/api/v1/message-campaigns/${campaignId}/preview`),
+  whatsappTemplatePreviews: (campaignId: string) => apiRequest<OfficialWhatsappTemplatePreview[]>(`/api/v1/campaigns/${campaignId}/whatsapp-templates/preview`),
   sendMessageCampaign: (campaignId: string) =>
     apiRequest<SendMessageCampaignResult>(`/api/v1/message-campaigns/${campaignId}/send`, {
       method: 'POST',
     }),
   messageRecipients: (campaignId: string) => apiRequest<MessageRecipient[]>(`/api/v1/message-campaigns/${campaignId}/recipients`),
+  messagingUsage: () => apiRequest<MessagingPolicyWithUsage>('/api/v1/messaging/usage'),
+  adminMessagingBoxes: () => apiRequest<MessagingBoxOverview[]>('/api/v1/admin/messaging/boxes'),
+  adminPlatformMessagingPolicy: () => apiRequest<MessagingPolicyWithUsage>('/api/v1/admin/messaging/platform/policy'),
+  updateAdminPlatformMessagingPolicy: (payload: MessagingPolicyPayload) =>
+    apiRequest<MessagingPolicyWithUsage>('/api/v1/admin/messaging/platform/policy', { method: 'PUT', body: JSON.stringify(payload) }),
+  updateAdminBoxMessagingPolicy: (boxId: string, payload: MessagingPolicyPayload) =>
+    apiRequest<MessagingPolicyWithUsage>(`/api/v1/admin/messaging/boxes/${boxId}/policy`, { method: 'PUT', body: JSON.stringify(payload) }),
+  adminWhatsappSettings: (boxId: string) => apiRequest<WhatsappSettings>(`/api/v1/admin/messaging/boxes/${boxId}/whatsapp-settings`),
+  updateAdminWhatsappSettings: (boxId: string, payload: { connection_mode: 'platform' | 'dedicated'; provider: 'twilio' | 'meta_cloud'; base_url: string; instance_name: string; api_key: string; enabled: boolean }) =>
+    apiRequest<WhatsappSettings>(`/api/v1/admin/messaging/boxes/${boxId}/whatsapp-settings`, { method: 'PUT', body: JSON.stringify(payload) }),
+  testAdminWhatsappSettings: (boxId: string, payload: { connection_mode: 'platform' | 'dedicated'; provider: 'twilio' | 'meta_cloud'; base_url: string; instance_name: string; api_key: string; enabled: boolean }) =>
+    apiRequest<void>(`/api/v1/admin/messaging/boxes/${boxId}/whatsapp-settings/test`, { method: 'POST', body: JSON.stringify(payload) }),
+  resetAdminOwnerPassword: (boxId: string, payload: { new_password: string; reason: string }) =>
+    apiRequest<void>(`/api/v1/admin/boxes/${boxId}/owner-password`, { method: 'PUT', body: JSON.stringify(payload) }),
 
   emailSettings: () => apiRequest<EmailSettings>('/api/v1/email/settings'),
   updateEmailSettings: (payload: { provider: 'smtp' | 'mock'; smtp_host: string; smtp_port: number; username: string; password: string; from_email: string; from_name: string; enabled: boolean }) =>
@@ -237,6 +274,7 @@ export const api = {
   runAutomationScheduleNow: (scheduleId: string) =>
     apiRequest<AutomationRun>(`/api/v1/automation/schedules/${scheduleId}/run`, {
       method: 'POST',
+      headers: { 'Idempotency-Key': crypto.randomUUID() },
     }),
   eligibleStudentsReport: () => apiRequest<EligibleStudentReport[]>('/api/v1/reports/eligible-students'),
   pendingRewardsReport: () => apiRequest<RewardDelivery[]>('/api/v1/reports/pending-rewards'),

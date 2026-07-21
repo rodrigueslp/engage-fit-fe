@@ -1,11 +1,13 @@
 import type { PageKey } from '../../app/App';
-import { navItems } from './navItems';
+import type { Capabilities, CurrentUser } from '../../features/api/types';
+import { navItemsForRole } from './navItems';
 
-export function Sidebar({ currentPage, onNavigate }: { currentPage: PageKey; onNavigate: (page: PageKey) => void }) {
+export function Sidebar({ currentPage, onNavigate, user, capabilities }: { currentPage: PageKey; onNavigate: (page: PageKey) => void; user?: CurrentUser; capabilities: Capabilities }) {
+	const navItems = navItemsForRole(user?.role, capabilities);
   return (
     <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:block">
       <div className="flex h-16 items-center border-b border-slate-200 px-5">
-        <button type="button" className="rounded-md focus:outline-none focus:ring-2 focus:ring-accent" onClick={() => onNavigate('dashboard')} aria-label="Ir para o dashboard">
+        <button type="button" className="rounded-md focus:outline-none focus:ring-2 focus:ring-accent" onClick={() => onNavigate(user?.role === 'PLATFORM_ADMIN' ? 'admin-messaging' : 'dashboard')} aria-label="Ir para o início">
           <img src="/engagefit-logo-cropped.png" alt="EngageFit" className="h-11 w-auto" />
         </button>
       </div>
