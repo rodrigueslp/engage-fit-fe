@@ -1,4 +1,4 @@
-import { AlertTriangle, Building2, KeyRound, Plug, Save, ShieldCheck, WalletCards } from 'lucide-react';
+import { AlertTriangle, Building2, KeyRound, Plug, Plus, Save, ShieldCheck, WalletCards } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ErrorState, LoadingState } from '../../components/common/State';
@@ -6,7 +6,8 @@ import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { api, type MessagingPolicyPayload } from '../../features/api/endpoints';
-import type { MessagingBoxOverview, MessagingPolicy, MessagingPolicyWithUsage, WhatsappSettings } from '../../features/api/types';
+import type { AdminBox, BoxStatus, MessagingBoxOverview, MessagingPolicy, MessagingPolicyWithUsage, WhatsappSettings } from '../../features/api/types';
+import { AcademyLifecycleEditor, AcademyStatusBadge, CreateAcademyForm, type CreateAcademyPayload } from './AcademyManagement';
 
 function money(micros: number, currency = 'USD') {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(micros / 1_000_000);
@@ -190,21 +191,25 @@ function OwnerAccessEditor({ saving, onReset }: { saving: boolean; onReset: (pas
 
 export function MessagingGovernancePage({ whatsappEnabled }: { whatsappEnabled: boolean }) {
   const [boxes, setBoxes] = useState<MessagingBoxOverview[]>([]);
+  const [adminBoxes, setAdminBoxes] = useState<AdminBox[]>([]);
   const [platform, setPlatform] = useState<MessagingPolicyWithUsage>();
   const [connection, setConnection] = useState<WhatsappSettings>();
   const [selectedBoxID, setSelectedBoxID] = useState('');
   const [section, setSection] = useState<'global' | 'academies'>('academies');
-  const [academyTab, setAcademyTab] = useState<'policy' | 'connection' | 'access'>('policy');
+  const [academyTab, setAcademyTab] = useState<'lifecycle' | 'policy' | 'connection' | 'access'>('lifecycle');
+  const [showCreate, setShowCreate] = useState(false);
+  const [academySearch, setAcademySearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
 
   async function load() {
-    const [boxItems, platformPolicy] = await Promise.all([api.adminMessagingBoxes(), api.adminPlatformMessagingPolicy()]);
+    const [boxItems, academyItems, platformPolicy] = await Promise.all([api.adminMessagingBoxes(), api.adminBoxes(), api.adminPlatformMessagingPolicy()]);
     setBoxes(boxItems);
+    setAdminBoxes(academyItems);
     setPlatform(platformPolicy);
-    setSelectedBoxID((current) => boxItems.some((box) => box.box_id === current) ? current : boxItems[0]?.box_id || '');
+    setSelectedBoxID((current) => academyItems.some((box) => box.id === current) ? current : academyItems[0]?.id || '');
   }
 
   useEffect(() => { load().catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar governança')).finally(() => setLoading(false)); }, []);
@@ -253,28 +258,67 @@ export function MessagingGovernancePage({ whatsappEnabled }: { whatsappEnabled: 
     finally { setSaving(false); }
   }
 
+  async function createAcademy(payload: CreateAcademyPayload) {
+    setSaving(true); setError(''); setStatus('');
+    try {
+      const created = await api.createAdminBox(payload);
+      await load(); setSelectedBoxID(created.id); setAcademyTab('lifecycle'); setShowCreate(false);
+      setStatus('Academia e proprietário criados com sucesso');
+    } catch (err) { setError(err instanceof Error ? err.message : 'Erro ao criar academia'); throw err; }
+    finally { setSaving(false); }
+  }
+
+  async function updateAcademy(name: string, reason: string) {
+    if (!selectedBoxID) return;
+    setSaving(true); setError(''); setStatus('');
+    try { await api.updateAdminBox(selectedBoxID, { name, reason }); await load(); setStatus('Cadastro da academia atualizado'); }
+    catch (err) { setError(err instanceof Error ? err.message : 'Erro ao atualizar academia'); throw err; }
+    finally { setSaving(false); }
+  }
+
+  async function changeAcademyStatus(nextStatus: BoxStatus, reason: string) {
+    if (!selectedBoxID) return;
+    setSaving(true); setError(''); setStatus('');
+    try {
+      if (nextStatus === 'active') await api.reactivateAdminBox(selectedBoxID, reason);
+      else if (nextStatus === 'suspended') await api.suspendAdminBox(selectedBoxID, reason);
+      else await api.archiveAdminBox(selectedBoxID, reason);
+      await load(); setAcademyTab('lifecycle');
+      setStatus(nextStatus === 'active' ? 'Academia reativada' : nextStatus === 'suspended' ? 'Academia suspensa; sessões e automações foram bloqueadas' : 'Academia arquivada');
+    } catch (err) { setError(err instanceof Error ? err.message : 'Erro ao alterar status da academia'); throw err; }
+    finally { setSaving(false); }
+  }
+
   if (loading) return <LoadingState label="Carregando governança de mensageria" />;
-  const selected = boxes.find((box) => box.box_id === selectedBoxID);
-  const sharedConnections = boxes.filter((box) => box.connection_mode === 'platform').length;
-  const blockedBoxes = boxes.filter((box) => box.policy.blocked).length;
+  const selected = adminBoxes.find((box) => box.id === selectedBoxID);
+  const selectedMessaging = boxes.find((box) => box.box_id === selectedBoxID);
+  const activeBoxes = adminBoxes.filter((box) => box.status === 'active').length;
+  const suspendedBoxes = adminBoxes.filter((box) => box.status === 'suspended').length;
+  const archivedBoxes = adminBoxes.filter((box) => box.status === 'archived').length;
+  const normalizedSearch = academySearch.trim().toLocaleLowerCase('pt-BR');
+  const filteredAdminBoxes = normalizedSearch ? adminBoxes.filter((box) => `${box.name} ${box.owner_name} ${box.owner_email}`.toLocaleLowerCase('pt-BR').includes(normalizedSearch)) : adminBoxes;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-lg bg-accent-soft text-accent-dark"><ShieldCheck className="h-5 w-5" /></div><div><h1 className="text-2xl font-bold text-slate-950">Governança de WhatsApp</h1><p className="mt-1 text-sm text-slate-500">Controle o uso do número compartilhado e os limites de cada academia.</p></div></div>
-        <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-1 shadow-sm">
-          <SectionButton active={section === 'academies'} onClick={() => setSection('academies')}><Building2 className="h-4 w-4" />Academias</SectionButton>
-          <SectionButton active={section === 'global'} onClick={() => setSection('global')}><ShieldCheck className="h-4 w-4" />Proteção global</SectionButton>
+        <div className="flex items-start gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-lg bg-accent-soft text-accent-dark"><ShieldCheck className="h-5 w-5" /></div><div><h1 className="text-2xl font-bold text-slate-950">Administração da plataforma</h1><p className="mt-1 text-sm text-slate-500">Gerencie academias, acessos, conexões e limites operacionais.</p></div></div>
+        <div className="flex flex-wrap items-center gap-2">
+          {section === 'academies' && <Button onClick={() => setShowCreate((current) => !current)}><Plus className="h-4 w-4" />Nova academia</Button>}
+          <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-1 shadow-sm">
+            <SectionButton active={section === 'academies'} onClick={() => setSection('academies')}><Building2 className="h-4 w-4" />Academias</SectionButton>
+            <SectionButton active={section === 'global'} onClick={() => setSection('global')}><ShieldCheck className="h-4 w-4" />Proteção global</SectionButton>
+          </div>
         </div>
       </div>
       {error && <ErrorState message={error} />}
       {status && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{status}</div>}
+      {showCreate && section === 'academies' && <CreateAcademyForm saving={saving} onSubmit={createAcademy} onCancel={() => setShowCreate(false)} />}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard label="Academias cadastradas" value={String(boxes.length)} detail="tenants ativos no sistema" />
-        <SummaryCard label="Número EngageFit" value={String(sharedConnections)} detail="academias na conexão compartilhada" />
-        <SummaryCard label="Números dedicados" value={String(boxes.length - sharedConnections)} detail="conexões próprias de academias" />
-        <SummaryCard label="Envios bloqueados" value={String(blockedBoxes)} detail={blockedBoxes === 0 ? 'nenhuma academia bloqueada' : 'exigem atenção operacional'} danger={blockedBoxes > 0} />
+        <SummaryCard label="Academias cadastradas" value={String(adminBoxes.length)} detail="todos os tenants preservados" />
+        <SummaryCard label="Ativas" value={String(activeBoxes)} detail="operação liberada" />
+        <SummaryCard label="Suspensas" value={String(suspendedBoxes)} detail={suspendedBoxes === 0 ? 'nenhuma suspensão' : 'login e automações bloqueados'} danger={suspendedBoxes > 0} />
+        <SummaryCard label="Arquivadas" value={String(archivedBoxes)} detail="retenção e auditoria" />
       </div>
 
       {section === 'global' && platform && (
@@ -289,30 +333,38 @@ export function MessagingGovernancePage({ whatsappEnabled }: { whatsappEnabled: 
           <Card className="xl:sticky xl:top-5">
             <CardHeader><div className="flex items-center gap-3"><Building2 className="h-5 w-5 text-accent" /><div><h2 className="font-bold text-slate-950">Academias</h2><p className="text-sm text-slate-500">Escolha quem deseja administrar.</p></div></div></CardHeader>
             <CardContent className="space-y-2">
-              {boxes.length === 0 && <p className="text-sm text-slate-500">Nenhuma academia cadastrada.</p>}
-              {boxes.map((box) => (
-                <button key={box.box_id} type="button" onClick={() => setSelectedBoxID(box.box_id)} className={`w-full rounded-lg border p-3 text-left transition ${selectedBoxID === box.box_id ? 'border-accent bg-accent-soft/40' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}>
-                  <span className="block truncate text-sm font-bold text-slate-900">{box.box_name}</span>
-                  <span className="mt-1 flex items-center gap-1.5 text-xs text-slate-500"><WalletCards className="h-3.5 w-3.5" />{box.connection_mode === 'platform' ? 'Número EngageFit' : 'Número dedicado'}</span>
-                  {box.policy.blocked && <span className="mt-2 inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-bold text-rose-700">Envios bloqueados</span>}
+              <Input value={academySearch} onChange={(event) => setAcademySearch(event.target.value)} placeholder="Buscar academia ou owner" aria-label="Buscar academias" />
+              {adminBoxes.length === 0 && <p className="text-sm text-slate-500">Nenhuma academia cadastrada.</p>}
+              {adminBoxes.length > 0 && filteredAdminBoxes.length === 0 && <p className="text-sm text-slate-500">Nenhuma academia encontrada.</p>}
+              {filteredAdminBoxes.map((box) => {
+                const messaging = boxes.find((item) => item.box_id === box.id);
+                return (
+                <button key={box.id} type="button" onClick={() => { setSelectedBoxID(box.id); setAcademyTab('lifecycle'); }} className={`w-full rounded-lg border p-3 text-left transition ${selectedBoxID === box.id ? 'border-accent bg-accent-soft/40' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}>
+                  <span className="flex items-center justify-between gap-2"><span className="block truncate text-sm font-bold text-slate-900">{box.name}</span><AcademyStatusBadge status={box.status} /></span>
+                  <span className="mt-1 flex items-center gap-1.5 text-xs text-slate-500"><WalletCards className="h-3.5 w-3.5" />{messaging?.connection_mode === 'dedicated' ? 'Número dedicado' : 'Número EngageFit'}</span>
+                  {messaging?.policy.blocked && <span className="mt-2 inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-bold text-rose-700">Envios bloqueados</span>}
                 </button>
-              ))}
+              );})}
             </CardContent>
           </Card>
 
           {selected ? (
             <div className="min-w-0 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                <div><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Academia selecionada</p><h2 className="mt-1 text-xl font-bold text-slate-950">{selected.box_name}</h2></div>
+                <div><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Academia selecionada</p><div className="mt-1 flex items-center gap-2"><h2 className="text-xl font-bold text-slate-950">{selected.name}</h2><AcademyStatusBadge status={selected.status} /></div></div>
                 <div className="inline-flex rounded-lg bg-slate-100 p-1">
+                  <SectionButton active={academyTab === 'lifecycle'} onClick={() => setAcademyTab('lifecycle')}><Building2 className="h-4 w-4" />Cadastro e status</SectionButton>
+                  {selected.status !== 'archived' && selectedMessaging && <>
                   <SectionButton active={academyTab === 'policy'} onClick={() => setAcademyTab('policy')}><ShieldCheck className="h-4 w-4" />Limites e consumo</SectionButton>
                   {whatsappEnabled && <SectionButton active={academyTab === 'connection'} onClick={() => setAcademyTab('connection')}><Plug className="h-4 w-4" />Conexão</SectionButton>}
                   <SectionButton active={academyTab === 'access'} onClick={() => setAcademyTab('access')}><KeyRound className="h-4 w-4" />Acesso</SectionButton>
+                  </>}
                 </div>
               </div>
-              {academyTab === 'policy' && <PolicyEditor key={selected.box_id} title="Limites da academia" description="Estes limites valem apenas para esta academia e são aplicados a todos os seus disparos." data={{ policy: selected.policy, usage: selected.usage }} onSave={saveBox} saving={saving} />}
-              {academyTab === 'connection' && (connection ? <ConnectionEditor key={`connection-${selected.box_id}`} settings={connection} saving={saving} onSave={saveConnection} onTest={testConnection} /> : <LoadingState label="Carregando conexão da academia" />)}
-              {academyTab === 'access' && <OwnerAccessEditor key={`access-${selected.box_id}`} saving={saving} onReset={resetOwnerPassword} />}
+              {academyTab === 'lifecycle' && <AcademyLifecycleEditor key={`lifecycle-${selected.id}`} academy={selected} saving={saving} onUpdate={updateAcademy} onStatus={changeAcademyStatus} />}
+              {academyTab === 'policy' && selectedMessaging && <PolicyEditor key={selected.id} title="Limites da academia" description="Estes limites valem apenas para esta academia e são aplicados a todos os seus disparos." data={{ policy: selectedMessaging.policy, usage: selectedMessaging.usage }} onSave={saveBox} saving={saving} />}
+              {academyTab === 'connection' && (connection ? <ConnectionEditor key={`connection-${selected.id}`} settings={connection} saving={saving} onSave={saveConnection} onTest={testConnection} /> : <LoadingState label="Carregando conexão da academia" />)}
+              {academyTab === 'access' && <OwnerAccessEditor key={`access-${selected.id}`} saving={saving} onReset={resetOwnerPassword} />}
             </div>
           ) : <Card><CardContent><p className="text-sm text-slate-500">Selecione uma academia para visualizar limites e conexão.</p></CardContent></Card>}
         </div>

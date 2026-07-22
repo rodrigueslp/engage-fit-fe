@@ -36,6 +36,7 @@ import type {
   MessagingPolicyWithUsage,
   MessagingBoxOverview,
   Capabilities,
+  AdminBox,
 } from './types';
 
 export type MessagingPolicyPayload = Omit<MessagingPolicy, 'id' | 'scope' | 'box_id' | 'updated_at'> & { reason: string };
@@ -182,6 +183,17 @@ export const api = {
     apiRequest<void>(`/api/v1/admin/messaging/boxes/${boxId}/whatsapp-settings/test`, { method: 'POST', body: JSON.stringify(payload) }),
   resetAdminOwnerPassword: (boxId: string, payload: { new_password: string; reason: string }) =>
     apiRequest<void>(`/api/v1/admin/boxes/${boxId}/owner-password`, { method: 'PUT', body: JSON.stringify(payload) }),
+  adminBoxes: () => apiRequest<AdminBox[]>('/api/v1/admin/boxes'),
+  createAdminBox: (payload: { box_name: string; owner_name: string; owner_email: string; password: string; reason: string }) =>
+    apiRequest<AdminBox>('/api/v1/admin/boxes', { method: 'POST', body: JSON.stringify(payload) }),
+  updateAdminBox: (boxId: string, payload: { name: string; reason: string }) =>
+    apiRequest<AdminBox>(`/api/v1/admin/boxes/${boxId}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  suspendAdminBox: (boxId: string, reason: string) =>
+    apiRequest<AdminBox>(`/api/v1/admin/boxes/${boxId}/suspend`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  reactivateAdminBox: (boxId: string, reason: string) =>
+    apiRequest<AdminBox>(`/api/v1/admin/boxes/${boxId}/reactivate`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  archiveAdminBox: (boxId: string, reason: string) =>
+    apiRequest<AdminBox>(`/api/v1/admin/boxes/${boxId}/archive`, { method: 'POST', body: JSON.stringify({ reason }) }),
 
   emailSettings: () => apiRequest<EmailSettings>('/api/v1/email/settings'),
   updateEmailSettings: (payload: { provider: 'smtp' | 'mock'; smtp_host: string; smtp_port: number; username: string; password: string; from_email: string; from_name: string; enabled: boolean }) =>

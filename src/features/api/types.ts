@@ -23,8 +23,23 @@ export type CurrentUser = {
 export type Box = {
   id: string;
   name: string;
+  status: BoxStatus;
   risk_inactive_days: number;
   risk_message_cooldown_days: number;
+};
+
+export type BoxStatus = 'active' | 'suspended' | 'archived';
+
+export type AdminBox = {
+  id: string;
+  name: string;
+  status: BoxStatus;
+  status_reason: string;
+  status_changed_at?: string;
+  owner_id: string;
+  owner_name: string;
+  owner_email: string;
+  created_at: string;
 };
 
 export type DashboardSummary = {
