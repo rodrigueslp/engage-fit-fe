@@ -45,6 +45,8 @@ export function AutomationPage() {
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
   const [runningScheduleId, setRunningScheduleId] = useState('');
+  const [section, setSection] = useState<'routines' | 'history'>('routines');
+  const [showCreate, setShowCreate] = useState(false);
 
   function load() {
     setLoading(true);
@@ -85,6 +87,7 @@ export function AutomationPage() {
   }
 
   async function deleteSchedule(scheduleId: string) {
+    if (!window.confirm('Remover esta rotina automática?')) return;
     setError('');
     try {
       await api.deleteAutomationSchedule(scheduleId);
@@ -128,9 +131,15 @@ export function AutomationPage() {
       {error && <ErrorState message={error} />}
       {status && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{status}</div>}
 
-      <div className="grid gap-5 xl:grid-cols-[420px_1fr]">
+      <div className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-panel" role="tablist" aria-label="Seções da automação">
+        <button type="button" role="tab" aria-selected={section === 'routines'} className={`min-h-10 rounded-lg px-4 text-sm font-bold ${section === 'routines' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`} onClick={() => setSection('routines')}>Rotinas ({schedules.length})</button>
+        <button type="button" role="tab" aria-selected={section === 'history'} className={`min-h-10 rounded-lg px-4 text-sm font-bold ${section === 'history' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`} onClick={() => setSection('history')}>Histórico ({runs.length})</button>
+      </div>
+
+      {section === 'routines' && <div className={`grid gap-5 ${showCreate ? 'xl:grid-cols-[420px_1fr]' : ''}`}>
+        {showCreate &&
         <Card>
-          <CardHeader><h2 className="text-base font-bold text-slate-950">Nova rotina</h2></CardHeader>
+          <CardHeader><div className="flex items-center justify-between gap-3"><h2 className="text-base font-bold text-slate-950">Nova rotina</h2><Button type="button" variant="ghost" onClick={() => setShowCreate(false)}>Cancelar</Button></div></CardHeader>
           <CardContent>
             <form className="space-y-3" onSubmit={createSchedule}>
               <Input placeholder="Nome da rotina" value={form.name} onChange={(event) => setForm((value) => ({ ...value, name: event.target.value }))} required />
@@ -152,10 +161,10 @@ export function AutomationPage() {
               <Button><Plus className="h-4 w-4" />Criar rotina</Button>
             </form>
           </CardContent>
-        </Card>
+        </Card>}
 
         <Card>
-          <CardHeader><h2 className="text-base font-bold text-slate-950">Rotinas automáticas</h2></CardHeader>
+          <CardHeader><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-base font-bold text-slate-950">Rotinas automáticas</h2><p className="mt-1 text-sm text-slate-500">Configure horários e acompanhe a última execução.</p></div>{!showCreate && <Button type="button" onClick={() => setShowCreate(true)}><Plus className="h-4 w-4" />Nova rotina</Button>}</div></CardHeader>
           <CardContent className="space-y-3">
             {schedules.length === 0 ? <EmptyState message="Nenhuma rotina configurada" /> : schedules.map((schedule) => (
               <div key={schedule.id} className="rounded-md border border-slate-100 p-3">
@@ -169,46 +178,35 @@ export function AutomationPage() {
                     <StatusBadge value={schedule.enabled ? 'active' : 'inactive'} label={schedule.enabled ? 'Ativa' : 'Pausada'} />
                     <Button type="button" variant="secondary" onClick={() => runNow(schedule.id)} disabled={runningScheduleId === schedule.id}><Play className="h-4 w-4" />{runningScheduleId === schedule.id ? 'Rodando' : 'Executar'}</Button>
                     <Button type="button" variant="secondary" onClick={() => toggleSchedule(schedule)}>{schedule.enabled ? 'Pausar' : 'Ativar'}</Button>
-                    <Button type="button" variant="secondary" onClick={() => deleteSchedule(schedule.id)}><Trash2 className="h-4 w-4" /></Button>
+                    <Button type="button" variant="ghost" className="text-rose-700 hover:bg-rose-50" aria-label={`Remover rotina ${schedule.name}`} title="Remover rotina" onClick={() => deleteSchedule(schedule.id)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </div>
               </div>
             ))}
           </CardContent>
         </Card>
-      </div>
+      </div>}
 
-      <Card>
-        <CardHeader><h2 className="text-base font-bold text-slate-950">Execuções recentes</h2></CardHeader>
-        <CardContent className="space-y-3">
+      {section === 'history' && <Card>
+        <CardHeader><h2 className="text-base font-bold text-slate-950">Execuções recentes</h2><p className="mt-1 text-sm text-slate-500">Resultados resumidos; abra uma execução para ver todos os detalhes.</p></CardHeader>
+        <CardContent className="divide-y divide-slate-100 p-0">
           {runs.length === 0 ? <EmptyState message="Nenhuma automação registrada" /> : runs.map((run) => (
-            <div key={run.id} className="rounded-md border border-slate-100 p-3">
-              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-                <div>
+            <details key={run.id} className="group p-4">
+              <summary className="flex cursor-pointer list-none flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
                   <p className="font-semibold text-slate-950">{formatDateTime(run.started_at)}</p>
-                  <p className="text-sm text-slate-500">{run.filename ? `${run.source} · ${run.filename}` : 'Sem arquivo importado'}</p>
+                  <p className="text-sm text-slate-500">{run.recalculated_campaigns} campanhas · {run.sent_messages} mensagens · {run.failed_messages} falhas</p>
                 </div>
                 <StatusBadge value={run.status === 'success' ? 'active' : run.status === 'failed' ? 'warning' : 'inactive'} label={statusLabel(run.status)} />
-              </div>
-              <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2 xl:grid-cols-5">
-                <Metric label="Importação" value={run.imported ? 'Sim' : 'Não'} />
-                <Metric label="Campanhas" value={run.recalculated_campaigns} />
-                <Metric label="Mensagens" value={run.sent_messages} />
-                <Metric label="Falhas" value={run.failed_messages} />
-                <Metric label="Ignoradas" value={run.skipped_message_campaigns} />
-              </div>
+              </summary>
+              <dl className="mt-4 grid gap-3 rounded-lg bg-slate-50 p-3 text-sm sm:grid-cols-3"><div><dt className="text-xs text-slate-500">Importação</dt><dd className="font-bold text-slate-800">{run.imported ? `Sim${run.filename ? ` · ${run.filename}` : ''}` : 'Não'}</dd></div><div><dt className="text-xs text-slate-500">Mensagens ignoradas</dt><dd className="font-bold text-slate-800">{run.skipped_message_campaigns}</dd></div><div><dt className="text-xs text-slate-500">Finalização</dt><dd className="font-bold text-slate-800">{run.finished_at ? formatDateTime(run.finished_at) : 'Em andamento'}</dd></div></dl>
               {run.error_message && <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{run.error_message}</p>}
-              {run.finished_at && <p className="mt-2 text-xs font-semibold text-slate-400">Finalizada em {formatDateTime(run.finished_at)}</p>}
-            </div>
+            </details>
           ))}
         </CardContent>
-      </Card>
+      </Card>}
     </div>
   );
-}
-
-function Metric({ label, value }: { label: string; value: string | number }) {
-  return <div className="rounded-md bg-slate-50 px-3 py-2"><p className="text-xs font-semibold text-slate-400">{label}</p><p className="font-bold text-slate-800">{value}</p></div>;
 }
 
 function statusLabel(status: AutomationRun['status']) {

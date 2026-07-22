@@ -88,6 +88,8 @@ export function WhatsappPage() {
   }
 
   async function sendCampaign(campaignId: string) {
+    const campaign = campaigns.find((item) => item.id === campaignId);
+    if (!window.confirm(`${campaign?.sent_at ? 'Reenviar' : 'Enviar'} “${campaign?.name ?? 'esta mensagem'}” para o público elegível da campanha?`)) return;
     setError('');
     setSendStatus('');
     setSendingCampaignId(campaignId);
@@ -140,10 +142,10 @@ export function WhatsappPage() {
 
       {messagingUsage && (
         <Card>
-          <CardContent className="grid gap-4 sm:grid-cols-3">
-            <div><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Uso diário</p><p className="mt-1 text-xl font-bold text-slate-950">{messagingUsage.usage.daily_accepted + messagingUsage.usage.daily_reserved} / {messagingUsage.policy.daily_message_limit}</p></div>
-            <div><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Uso mensal</p><p className="mt-1 text-xl font-bold text-slate-950">{messagingUsage.usage.monthly_accepted + messagingUsage.usage.monthly_reserved} / {messagingUsage.policy.monthly_message_limit}</p></div>
-            <div><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Máximo por disparo</p><p className="mt-1 text-xl font-bold text-slate-950">{messagingUsage.policy.per_dispatch_limit}</p>{messagingUsage.policy.blocked && <p className="text-xs font-bold text-rose-600">Envios bloqueados pelo administrador</p>}</div>
+          <CardContent className="grid gap-5 sm:grid-cols-3">
+            <UsageMeter label="Uso diário" used={messagingUsage.usage.daily_accepted + messagingUsage.usage.daily_reserved} limit={messagingUsage.policy.daily_message_limit} warningPercent={messagingUsage.policy.warning_percent} />
+            <UsageMeter label="Uso mensal" used={messagingUsage.usage.monthly_accepted + messagingUsage.usage.monthly_reserved} limit={messagingUsage.policy.monthly_message_limit} warningPercent={messagingUsage.policy.warning_percent} />
+            <div><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Máximo por disparo</p><p className="mt-1 text-xl font-bold text-slate-950">{messagingUsage.policy.per_dispatch_limit} mensagens</p><p className="mt-2 text-xs text-slate-500">Limite de segurança por envio.</p>{messagingUsage.policy.blocked && <p className="mt-2 text-xs font-bold text-rose-600">Envios bloqueados pelo administrador</p>}</div>
           </CardContent>
         </Card>
       )}
@@ -194,9 +196,7 @@ export function WhatsappPage() {
                       <p className="whitespace-pre-wrap text-sm leading-6 text-slate-800">{template.preview}</p>
                     </div>
                     <div className="mt-3 space-y-2">
-                      <p className="text-xs font-semibold text-slate-500">
-                        {template.providerTemplateId ? `Provider template: ${template.providerTemplateId}` : 'Provider template ainda não configurado'}
-                      </p>
+                      {!template.providerTemplateId && <p className="text-xs font-semibold text-amber-700">Modelo ainda não configurado no provedor</p>}
                       {messageCampaign ? (
                         <Button type="button" className="w-full" variant="secondary" onClick={() => sendCampaign(messageCampaign.id)} disabled={sendingCampaignId === messageCampaign.id}>
                           <Send className="h-4 w-4" />
@@ -254,6 +254,12 @@ export function WhatsappPage() {
       </Card>
     </div>
   );
+}
+
+function UsageMeter({ label, used, limit, warningPercent }: { label: string; used: number; limit: number; warningPercent: number }) {
+  const percentage = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  const warning = percentage >= warningPercent;
+  return <div><div className="flex items-end justify-between gap-2"><div><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p><p className="mt-1 text-xl font-bold text-slate-950">{used} / {limit}</p></div><span className={`text-xs font-bold ${warning ? 'text-amber-700' : 'text-slate-500'}`}>{percentage}%</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${warning ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${percentage}%` }} /></div></div>;
 }
 
 function TemplateProviderConfiguration({ template, onSaved }: { template: OfficialWhatsappTemplatePreview; onSaved: (template: OfficialWhatsappTemplatePreview) => void }) {

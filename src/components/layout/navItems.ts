@@ -2,21 +2,23 @@ import { Activity, BarChart3, Dumbbell, Gift, MessageCircle, RefreshCw, Settings
 import type { PageKey } from '../../app/App';
 import type { Capabilities } from '../../features/api/types';
 
-export const navItems: Array<{ key: PageKey; label: string; icon: typeof BarChart3 }> = [
-  { key: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-  { key: 'campaigns', label: 'Campanhas', icon: Target },
-  { key: 'rewards', label: 'Brindes', icon: Gift },
-  { key: 'students', label: 'Alunos', icon: Users },
-  { key: 'checkins', label: 'Check-ins', icon: Activity },
-  { key: 'imports', label: 'Importações', icon: Upload },
-  { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
-  { key: 'automation', label: 'Automação', icon: RefreshCw },
-  { key: 'reports', label: 'Relatórios', icon: Dumbbell },
-  { key: 'settings', label: 'Configurações', icon: Settings },
+export type NavItem = { key: PageKey; label: string; icon: typeof BarChart3; group: string };
+
+export const navItems: NavItem[] = [
+  { key: 'dashboard', label: 'Dashboard', icon: BarChart3, group: 'Visão geral' },
+  { key: 'campaigns', label: 'Campanhas', icon: Target, group: 'Operação' },
+  { key: 'rewards', label: 'Brindes', icon: Gift, group: 'Operação' },
+  { key: 'students', label: 'Alunos', icon: Users, group: 'Operação' },
+  { key: 'checkins', label: 'Check-ins', icon: Activity, group: 'Operação' },
+  { key: 'imports', label: 'Importações', icon: Upload, group: 'Operação' },
+  { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, group: 'Engajamento' },
+  { key: 'automation', label: 'Automação', icon: RefreshCw, group: 'Engajamento' },
+  { key: 'reports', label: 'Relatórios', icon: Dumbbell, group: 'Gestão' },
+  { key: 'settings', label: 'Configurações', icon: Settings, group: 'Gestão' },
 ];
 
-export const adminNavItems: Array<{ key: PageKey; label: string; icon: typeof BarChart3 }> = [
-  { key: 'admin-messaging', label: 'Administração', icon: ShieldCheck },
+export const adminNavItems: NavItem[] = [
+  { key: 'admin-messaging', label: 'Administração', icon: ShieldCheck, group: 'Plataforma' },
 ];
 
 export function navItemsForRole(role: string | undefined, capabilities: Capabilities) {

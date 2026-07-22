@@ -17,10 +17,12 @@ type CampaignDetails = {
 };
 
 type CampaignView = 'create' | 'list' | 'details';
+type CampaignDetailsTab = 'overview' | 'participants' | 'settings';
 const progressPageSize = 10;
 
 export function CampaignsPage() {
-  const [view, setView] = useState<CampaignView>('create');
+  const [view, setView] = useState<CampaignView>('list');
+  const [detailsTab, setDetailsTab] = useState<CampaignDetailsTab>('overview');
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState('');
   const [details, setDetails] = useState<CampaignDetails>({ goals: [], rewards: [], progress: [] });
@@ -225,6 +227,35 @@ export function CampaignsPage() {
     }
   }
 
+  async function saveCampaignSettings(event: FormEvent) {
+    event.preventDefault();
+    if (!selectedCampaign) return;
+    setError('');
+    setSavingDetails(true);
+    try {
+      await api.updateCampaign(selectedCampaign.id, {
+        name: editName,
+        description: editDescription,
+        start_date: editStartDate,
+        end_date: editEndDate,
+        active: selectedCampaign.active,
+      });
+      await Promise.all([
+        upsertGoal(selectedCampaign.id, 'wellhub', Number(editWellhubGoal)),
+        upsertGoal(selectedCampaign.id, 'totalpass', Number(editTotalpassGoal)),
+      ]);
+      const rewardPayload = { name: editRewardName, description: editRewardDescription, quantity: Number(editRewardQuantity) };
+      if (details.rewards[0]) await api.updateReward(details.rewards[0].id, rewardPayload);
+      else await api.createReward(selectedCampaign.id, rewardPayload);
+      loadCampaigns(selectedCampaign.id);
+      loadDetails(selectedCampaign.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao salvar configuração da campanha');
+    } finally {
+      setSavingDetails(false);
+    }
+  }
+
   async function toggleCampaignActive() {
     if (!selectedCampaign) return;
     setError('');
@@ -251,6 +282,7 @@ export function CampaignsPage() {
 
   function openCampaign(campaignId: string) {
     setSelectedCampaignId(campaignId);
+    setDetailsTab('overview');
     setView("details");
   }
 
@@ -442,7 +474,15 @@ export function CampaignsPage() {
       {view === "details" && (
         selectedCampaign ? (
           <div className="min-w-0 space-y-5">
-            <CampaignEditPanel
+            <div className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-panel" role="tablist" aria-label="Detalhes da campanha">
+              {([
+                ['overview', 'Visão geral'],
+                ['participants', `Participantes (${details.progress.length})`],
+                ['settings', 'Ajustes'],
+              ] as Array<[CampaignDetailsTab, string]>).map(([tab, label]) => <button key={tab} type="button" role="tab" aria-selected={detailsTab === tab} className={`min-h-10 shrink-0 rounded-lg px-4 text-sm font-bold transition ${detailsTab === tab ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`} onClick={() => setDetailsTab(tab)}>{label}</button>)}
+            </div>
+
+            {detailsTab === 'settings' && <CampaignEditPanel
               campaign={selectedCampaign}
               saving={savingDetails}
               name={editName}
@@ -463,13 +503,11 @@ export function CampaignsPage() {
               onRewardNameChange={setEditRewardName}
               onRewardDescriptionChange={setEditRewardDescription}
               onRewardQuantityChange={setEditRewardQuantity}
-              onSaveBasics={saveCampaignBasics}
-              onSaveGoals={saveCampaignGoals}
-              onSaveReward={saveCampaignReward}
+              onSaveAll={saveCampaignSettings}
               onToggleActive={toggleCampaignActive}
-            />
+            />}
 
-            <CampaignOperationalPanel
+            {detailsTab !== 'settings' && <CampaignOperationalPanel
               campaign={selectedCampaign}
               details={details}
               loading={detailsLoading}
@@ -477,7 +515,8 @@ export function CampaignsPage() {
               nearGoal={nearGoal}
               averageProgress={averageProgress}
               onRecalculate={recalculate}
-            />
+              mode={detailsTab}
+            />}
           </div>
         ) : (
           <Card>
@@ -512,9 +551,7 @@ function CampaignEditPanel({
   onRewardNameChange,
   onRewardDescriptionChange,
   onRewardQuantityChange,
-  onSaveBasics,
-  onSaveGoals,
-  onSaveReward,
+  onSaveAll,
   onToggleActive,
 }: {
   campaign?: Campaign;
@@ -537,9 +574,7 @@ function CampaignEditPanel({
   onRewardNameChange: (value: string) => void;
   onRewardDescriptionChange: (value: string) => void;
   onRewardQuantityChange: (value: string) => void;
-  onSaveBasics: (event: FormEvent) => void;
-  onSaveGoals: (event: FormEvent) => void;
-  onSaveReward: (event: FormEvent) => void;
+  onSaveAll: (event: FormEvent) => void;
   onToggleActive: () => void;
 }) {
   if (!campaign) {
@@ -566,21 +601,16 @@ function CampaignEditPanel({
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <form className="grid gap-3 md:grid-cols-2" onSubmit={onSaveBasics}>
+      <CardContent>
+        <form className="space-y-6" onSubmit={onSaveAll}>
+        <div className="grid gap-3 md:grid-cols-2">
           <Input placeholder="Nome da campanha" value={name} onChange={(event) => onNameChange(event.target.value)} required />
           <Textarea placeholder="Descrição" value={description} onChange={(event) => onDescriptionChange(event.target.value)} />
           <Input type="date" value={startDate} onChange={(event) => onStartDateChange(event.target.value)} required />
           <Input type="date" value={endDate} onChange={(event) => onEndDateChange(event.target.value)} required />
-          <div className="md:col-span-2">
-            <Button disabled={saving}>
-              <Save className="h-4 w-4" />
-              Salvar dados
-            </Button>
-          </div>
-        </form>
+        </div>
 
-        <form className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]" onSubmit={onSaveGoals}>
+        <div className="grid gap-3 border-t border-slate-100 pt-5 sm:grid-cols-2">
           <label className="space-y-1 text-xs font-semibold text-slate-500">
             Meta Wellhub
             <Input min="1" type="number" value={wellhubGoal} onChange={(event) => onWellhubGoalChange(event.target.value)} required />
@@ -589,24 +619,14 @@ function CampaignEditPanel({
             Meta TotalPass
             <Input min="1" type="number" value={totalpassGoal} onChange={(event) => onTotalpassGoalChange(event.target.value)} required />
           </label>
-          <div className="flex items-end">
-            <Button className="w-full lg:w-auto" disabled={saving}>
-              <Save className="h-4 w-4" />
-              Salvar metas
-            </Button>
-          </div>
-        </form>
+        </div>
 
-        <form className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px_auto]" onSubmit={onSaveReward}>
+        <div className="grid gap-3 border-t border-slate-100 pt-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px]">
           <Input placeholder="Nome do brinde" value={rewardName} onChange={(event) => onRewardNameChange(event.target.value)} required />
           <Input placeholder="Descrição do brinde" value={rewardDescription} onChange={(event) => onRewardDescriptionChange(event.target.value)} />
           <Input min="1" type="number" value={rewardQuantity} onChange={(event) => onRewardQuantityChange(event.target.value)} required />
-          <div className="flex items-end">
-            <Button className="w-full lg:w-auto" disabled={saving}>
-              <Save className="h-4 w-4" />
-              Salvar brinde
-            </Button>
-          </div>
+        </div>
+        <div className="flex justify-end border-t border-slate-100 pt-5"><Button className="w-full sm:w-auto" disabled={saving}><Save className="h-4 w-4" />{saving ? 'Salvando alterações' : 'Salvar alterações'}</Button></div>
         </form>
       </CardContent>
     </Card>
@@ -621,6 +641,7 @@ function CampaignOperationalPanel({
   nearGoal,
   averageProgress,
   onRecalculate,
+  mode,
 }: {
   campaign?: Campaign;
   details: CampaignDetails;
@@ -629,6 +650,7 @@ function CampaignOperationalPanel({
   nearGoal: number;
   averageProgress: number;
   onRecalculate: () => void;
+  mode: Exclude<CampaignDetailsTab, 'settings'>;
 }) {
   const [progressPage, setProgressPage] = useState(1);
   const progressTotalPages = Math.max(1, Math.ceil(details.progress.length / progressPageSize));
@@ -658,8 +680,8 @@ function CampaignOperationalPanel({
       <CardHeader>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="text-base font-bold text-slate-950">{campaign.name}</h2>
-            <p className="mt-1 text-sm text-slate-500">{campaign.description || 'Campanha sem descrição'}</p>
+            <h2 className="text-base font-bold text-slate-950">{mode === 'participants' ? 'Participantes da campanha' : campaign.name}</h2>
+            <p className="mt-1 text-sm text-slate-500">{mode === 'participants' ? 'Acompanhe check-ins, distância da meta e situação de cada aluno.' : campaign.description || 'Campanha sem descrição'}</p>
           </div>
           <Button variant="secondary" onClick={onRecalculate} disabled={loading}>
             <RefreshCw className="h-4 w-4" />
@@ -672,7 +694,7 @@ function CampaignOperationalPanel({
           <LoadingState />
         ) : (
           <div className="space-y-5">
-            <div className="grid gap-3 md:grid-cols-4">
+            {mode === 'overview' && <><div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               <Metric label="Wellhub" value={wellhub ? `${wellhub.target_checkins}` : '-'} />
               <Metric label="TotalPass" value={totalpass ? `${totalpass.target_checkins}` : '-'} />
               <Metric label="Atingiram" value={`${achieved}`} />
@@ -683,12 +705,12 @@ function CampaignOperationalPanel({
               <div className="rounded-md border border-slate-200 p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <Trophy className="h-4 w-4 text-accent" />
-                  <h3 className="text-sm font-bold text-slate-950">Progressó da campanha</h3>
+                  <h3 className="text-sm font-bold text-slate-950">Progresso da campanha</h3>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                   <div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(averageProgress, 100)}%` }} />
                 </div>
-                <p className="mt-2 text-sm font-semibold text-slate-700">{averageProgress}% de progresso medio</p>
+                <p className="mt-2 text-sm font-semibold text-slate-700">{averageProgress}% de progresso médio</p>
               </div>
 
               <div className="rounded-md border border-slate-200 p-4">
@@ -720,10 +742,10 @@ function CampaignOperationalPanel({
                   </div>
                 )}
               </div>
-            </div>
+            </div></>}
 
-            <div className="overflow-x-auto rounded-md border border-slate-200">
-              <div className="grid min-w-[620px] grid-cols-[1fr_120px_110px_120px] border-b border-slate-100 px-4 py-3 text-xs font-bold uppercase text-slate-500">
+            {mode === 'participants' && <div className="rounded-lg border border-slate-200">
+              <div className="hidden grid-cols-[1fr_120px_110px_120px] border-b border-slate-100 px-4 py-3 text-xs font-bold uppercase text-slate-500 md:grid">
                 <span>Aluno</span>
                 <span>Check-ins</span>
                 <span>Faltam</span>
@@ -735,34 +757,36 @@ function CampaignOperationalPanel({
                 </div>
               ) : (
                 visibleProgress.map((item) => (
-                  <div key={item.id} className="grid min-w-[620px] grid-cols-[1fr_120px_110px_120px] items-center border-b border-slate-100 px-4 py-3 last:border-b-0">
+                  <div key={item.id} className="border-b border-slate-100 p-4 last:border-b-0 md:grid md:grid-cols-[1fr_120px_110px_120px] md:items-center md:p-0 md:px-4 md:py-3">
                     <div>
                       <p className="text-sm font-semibold text-slate-950">{item.student_name ?? item.student_id}</p>
                       <p className="text-xs font-semibold text-slate-500">{item.student_source ?? 'plataforma'}</p>
                     </div>
-                    <span className="text-sm text-slate-600">{item.current_checkins}/{item.target_checkins}</span>
-                    <span className="text-sm text-slate-600">{item.remaining_checkins}</span>
-                    <StatusBadge value={item.achieved ? 'achieved' : item.near_goal ? 'near' : 'open'} label={item.achieved ? 'Meta' : item.near_goal ? 'Próximo' : 'Aberto'} />
+                    <div className="mt-3 flex items-center justify-between gap-2 md:contents">
+                      <span className="text-sm font-bold text-slate-700"><span className="font-normal text-slate-500 md:hidden">Check-ins: </span>{item.current_checkins}/{item.target_checkins}</span>
+                      <span className="text-sm text-slate-600"><span className="md:hidden">Faltam: </span>{item.remaining_checkins}</span>
+                      <StatusBadge value={item.achieved ? 'achieved' : item.near_goal ? 'near' : 'open'} label={item.achieved ? 'Meta atingida' : item.near_goal ? 'Próximo' : 'Em andamento'} />
+                    </div>
                   </div>
                 ))
               )}
               {details.progress.length > 0 && (
-                <div className="flex min-w-[620px] items-center justify-between gap-3 px-4 py-3">
+                <div className="flex flex-col items-start justify-between gap-3 px-4 py-3 sm:flex-row sm:items-center">
                   <span className="text-xs font-semibold text-slate-500">
                     {(currentProgressPage - 1) * progressPageSize + 1}–{Math.min(currentProgressPage * progressPageSize, details.progress.length)} de {details.progress.length} alunos
                   </span>
-                  <div className="flex items-center gap-2">
-                    <Button type="button" variant="secondary" className="h-8 px-2 text-xs" disabled={currentProgressPage === 1} onClick={() => setProgressPage((value) => Math.max(1, value - 1))}>
+                  <div className="flex w-full items-center justify-between gap-2 sm:w-auto">
+                    <Button type="button" variant="secondary" className="px-2 text-xs" disabled={currentProgressPage === 1} onClick={() => setProgressPage((value) => Math.max(1, value - 1))}>
                       Anterior
                     </Button>
                     <span className="text-xs font-semibold text-slate-500">Página {currentProgressPage} de {progressTotalPages}</span>
-                    <Button type="button" variant="secondary" className="h-8 px-2 text-xs" disabled={currentProgressPage === progressTotalPages} onClick={() => setProgressPage((value) => Math.min(progressTotalPages, value + 1))}>
+                    <Button type="button" variant="secondary" className="px-2 text-xs" disabled={currentProgressPage === progressTotalPages} onClick={() => setProgressPage((value) => Math.min(progressTotalPages, value + 1))}>
                       Próxima
                     </Button>
                   </div>
                 </div>
               )}
-            </div>
+            </div>}
           </div>
         )}
       </CardContent>

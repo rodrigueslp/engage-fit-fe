@@ -1,4 +1,4 @@
-import { CheckCircle2, Gift, Search, Users } from 'lucide-react';
+import { CheckCircle2, Gift, Search, Target } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
@@ -42,7 +42,6 @@ export function RewardsPage() {
 
   const pendingDeliveries = deliveries.filter((delivery) => !delivery.delivered);
   const deliveredDeliveries = deliveries.filter((delivery) => delivery.delivered);
-  const uniquePendingStudents = new Set(pendingDeliveries.map((delivery) => delivery.student_id)).size;
   const pendingCampaigns = new Set(pendingDeliveries.map((delivery) => delivery.campaign_id ?? delivery.campaign_name).filter(Boolean)).size;
 
   useEffect(() => {
@@ -77,7 +76,7 @@ export function RewardsPage() {
 
       <div className="grid gap-3 md:grid-cols-3">
         <RewardMetric label="Pendentes" value={pendingDeliveries.length} icon={Gift} />
-        <RewardMetric label="Alunos aguardando" value={uniquePendingStudents} icon={Users} />
+        <RewardMetric label="Campanhas com pendências" value={pendingCampaigns} icon={Target} />
         <RewardMetric label="Entregues" value={deliveredDeliveries.length} icon={CheckCircle2} />
       </div>
 
@@ -125,7 +124,35 @@ export function RewardsPage() {
               <EmptyState message="Nenhum brinde encontrado para essa busca" />
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="divide-y divide-slate-100 md:hidden">
+                {filteredDeliveries.map((delivery) => {
+                  const delivering = deliveringIds.includes(delivery.id);
+                  return (
+                    <div key={delivery.id} className="space-y-3 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-950">{delivery.student_name ?? 'Aluno'}</p>
+                          <p className="mt-0.5 text-sm text-slate-500">{delivery.campaign_name ?? 'Campanha'}</p>
+                        </div>
+                        <StatusBadge value={delivery.delivered ? 'achieved' : 'warning'} label={delivery.delivered ? 'Entregue' : 'Pendente'} />
+                      </div>
+                      <dl className="grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3 text-sm">
+                        <div><dt className="text-xs text-slate-500">Brinde</dt><dd className="mt-0.5 font-semibold text-slate-800">{delivery.reward_name ?? 'Não informado'}</dd></div>
+                        <div><dt className="text-xs text-slate-500">Telefone</dt><dd className="mt-0.5 font-semibold text-slate-800">{delivery.student_phone || 'Sem telefone'}</dd></div>
+                      </dl>
+                      {delivery.delivered ? (
+                        <p className="text-xs font-semibold text-slate-500">Entregue em {delivery.delivered_at ? formatDateTime(delivery.delivered_at) : 'data não informada'}</p>
+                      ) : (
+                        <Button type="button" variant="secondary" className="w-full" disabled={delivering} onClick={() => markDelivered(delivery.id)}>
+                          <CheckCircle2 className="h-4 w-4" />{delivering ? 'Salvando' : 'Marcar como entregue'}
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="hidden overflow-x-auto md:block">
               <div className="min-w-[920px] divide-y divide-slate-100">
                 <div className="grid grid-cols-[1.2fr_1.1fr_1fr_1fr_120px_150px] px-5 py-3 text-xs font-bold uppercase text-slate-500">
                   <span>Campanha</span>
@@ -141,11 +168,9 @@ export function RewardsPage() {
                     <div key={delivery.id} className="grid grid-cols-[1.2fr_1.1fr_1fr_1fr_120px_150px] items-center gap-3 px-5 py-4">
                       <div>
                         <p className="font-semibold text-slate-950">{delivery.campaign_name ?? 'Campanha'}</p>
-                        {delivery.campaign_id && <p className="mt-1 text-xs text-slate-400">{delivery.campaign_id}</p>}
                       </div>
                       <div>
                         <p className="font-semibold text-slate-950">{delivery.student_name ?? delivery.student_id}</p>
-                        <p className="mt-1 text-xs text-slate-400">{delivery.student_id}</p>
                       </div>
                       <p className="text-sm text-slate-600">{delivery.student_phone || '-'}</p>
                       <p className="text-sm font-semibold text-slate-700">{delivery.reward_name ?? delivery.reward_id}</p>
@@ -171,8 +196,8 @@ export function RewardsPage() {
                     </div>
                   );
                 })}
-              </div>
-            </div>
+              </div></div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -182,10 +207,10 @@ export function RewardsPage() {
 
 function RewardMetric({ label, value, icon: Icon }: { label: string; value: number; icon: typeof Gift }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-panel">
       <div className="flex items-center justify-between">
         <p className="text-xs font-bold uppercase text-slate-500">{label}</p>
-        <Icon className="h-4 w-4 text-accent" />
+        <span className="rounded-lg bg-amber-50 p-2 text-amber-700"><Icon className="h-4 w-4" /></span>
       </div>
       <p className="mt-2 text-2xl font-bold text-slate-950">{value}</p>
     </div>

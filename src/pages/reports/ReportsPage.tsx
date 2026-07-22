@@ -115,7 +115,7 @@ export function ReportsPage() {
 
       {error && <ErrorState message={error} />}
 
-      <div className="grid gap-3 lg:grid-cols-3">
+      <div className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-panel" role="tablist" aria-label="Tipo de relatório">
         {reports.map((report) => {
           const Icon = report.icon;
           const active = selectedReport === report.key;
@@ -123,20 +123,17 @@ export function ReportsPage() {
             <button
               key={report.key}
               type="button"
-              className={`rounded-lg border bg-white p-4 text-left shadow-panel transition ${active ? 'border-accent bg-accent-soft' : 'border-slate-200 hover:border-slate-300'}`}
+              role="tab"
+              aria-selected={active}
+              className={`flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-4 text-left text-sm font-bold transition ${active ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
               onClick={() => setSelectedReport(report.key)}
             >
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-bold text-slate-950">{report.title}</p>
-                  <p className="mt-1 text-sm text-slate-500">{report.description}</p>
-                </div>
-                <Icon className="h-5 w-5 text-accent" />
-              </div>
+              <Icon className="h-4 w-4" />{report.title}
             </button>
           );
         })}
       </div>
+      <p className="-mt-3 text-sm text-slate-500">{selectedReportConfig.description}</p>
 
       <Card>
         <CardHeader>
@@ -210,25 +207,23 @@ function EligibleStudentsTable({ rows }: { rows: EligibleStudentReport[] }) {
 
   return (
     <div className="divide-y divide-slate-100">
-      <div className="grid min-w-[900px] grid-cols-[1.2fr_1.2fr_120px_120px_120px_1fr] px-5 py-3 text-xs font-bold uppercase text-slate-500">
+      <div className="hidden grid-cols-[1.2fr_1.2fr_120px_120px_1fr] px-5 py-3 text-xs font-bold uppercase text-slate-500 md:grid">
         <span>Campanha</span>
         <span>Aluno</span>
         <span>Plataforma</span>
         <span>Check-ins</span>
-        <span>Status</span>
         <span>Brinde</span>
       </div>
       {rows.map((row) => (
-        <div key={`${row.campaign_id}-${row.student_id}`} className="grid min-w-[900px] grid-cols-[1.2fr_1.2fr_120px_120px_120px_1fr] items-center gap-3 px-5 py-4">
-          <p className="font-semibold text-slate-950">{row.campaign_name}</p>
+        <div key={`${row.campaign_id}-${row.student_id}`} className="space-y-3 px-4 py-4 md:grid md:grid-cols-[1.2fr_1.2fr_120px_120px_1fr] md:items-center md:gap-3 md:space-y-0 md:px-5">
+          <p className="text-sm text-slate-500 md:font-semibold md:text-slate-950">{row.campaign_name}</p>
           <div>
             <p className="font-semibold text-slate-950">{row.student_name}</p>
             <p className="mt-1 text-xs text-slate-400">{row.student_phone || 'Sem telefone'}</p>
           </div>
-          <StatusBadge value={row.source} label={row.source} />
-          <span className="text-sm text-slate-600">{row.current_checkins}/{row.target_checkins}</span>
-          <StatusBadge value="achieved" label="Elegivel" />
-          <span className="text-sm text-slate-600">{row.reward_name || '-'}</span>
+          <div><StatusBadge value={row.source} label={row.source} /></div>
+          <span className="text-sm font-bold text-slate-700"><span className="font-normal text-slate-500 md:hidden">Check-ins: </span>{row.current_checkins}/{row.target_checkins}</span>
+          <span className="text-sm text-slate-600"><span className="text-slate-500 md:hidden">Brinde: </span>{row.reward_name || '-'}</span>
         </div>
       ))}
     </div>
@@ -240,21 +235,21 @@ function PendingRewardsTable({ rows }: { rows: RewardDelivery[] }) {
 
   return (
     <div className="divide-y divide-slate-100">
-      <div className="grid min-w-[720px] grid-cols-[1.2fr_1.2fr_1fr_120px] px-5 py-3 text-xs font-bold uppercase text-slate-500">
+      <div className="hidden grid-cols-[1.2fr_1.2fr_1fr_120px] px-5 py-3 text-xs font-bold uppercase text-slate-500 md:grid">
         <span>Campanha</span>
         <span>Aluno</span>
         <span>Brinde</span>
         <span>Status</span>
       </div>
       {rows.map((row) => (
-        <div key={row.id} className="grid min-w-[720px] grid-cols-[1.2fr_1.2fr_1fr_120px] items-center gap-3 px-5 py-4">
-          <p className="font-semibold text-slate-950">{row.campaign_name ?? 'Campanha'}</p>
+        <div key={row.id} className="space-y-3 px-4 py-4 md:grid md:grid-cols-[1.2fr_1.2fr_1fr_120px] md:items-center md:gap-3 md:space-y-0 md:px-5">
+          <p className="text-sm text-slate-500 md:font-semibold md:text-slate-950">{row.campaign_name ?? 'Campanha'}</p>
           <div>
             <p className="font-semibold text-slate-950">{row.student_name ?? row.student_id}</p>
             <p className="mt-1 text-xs text-slate-400">{row.student_phone || 'Sem telefone'}</p>
           </div>
-          <span className="text-sm text-slate-600">{row.reward_name ?? row.reward_id}</span>
-          <StatusBadge value="warning" label="Pendente" />
+          <span className="text-sm text-slate-600"><span className="text-slate-500 md:hidden">Brinde: </span>{row.reward_name ?? row.reward_id}</span>
+          <div><StatusBadge value="warning" label="Pendente" /></div>
         </div>
       ))}
     </div>
@@ -266,7 +261,7 @@ function MonthlyFrequencyTable({ rows }: { rows: MonthlyFrequencyReport[] }) {
 
   return (
     <div className="divide-y divide-slate-100">
-      <div className="grid min-w-[780px] grid-cols-[1.4fr_120px_120px_140px_140px] px-5 py-3 text-xs font-bold uppercase text-slate-500">
+      <div className="hidden grid-cols-[1.4fr_120px_120px_140px_140px] px-5 py-3 text-xs font-bold uppercase text-slate-500 md:grid">
         <span>Aluno</span>
         <span>Plataforma</span>
         <span>Check-ins</span>
@@ -274,15 +269,15 @@ function MonthlyFrequencyTable({ rows }: { rows: MonthlyFrequencyReport[] }) {
         <span>Ultimo</span>
       </div>
       {rows.map((row) => (
-        <div key={row.student_id} className="grid min-w-[780px] grid-cols-[1.4fr_120px_120px_140px_140px] items-center gap-3 px-5 py-4">
+        <div key={row.student_id} className="space-y-3 px-4 py-4 md:grid md:grid-cols-[1.4fr_120px_120px_140px_140px] md:items-center md:gap-3 md:space-y-0 md:px-5">
           <div>
             <p className="font-semibold text-slate-950">{row.student_name}</p>
             <p className="mt-1 text-xs text-slate-400">{row.student_phone || 'Sem telefone'}</p>
           </div>
-          <StatusBadge value={row.source} label={row.source} />
-          <span className="text-sm font-semibold text-slate-700">{row.checkins}</span>
-          <span className="text-sm text-slate-600">{formatDate(row.first_checkin)}</span>
-          <span className="text-sm text-slate-600">{formatDate(row.last_checkin)}</span>
+          <div><StatusBadge value={row.source} label={row.source} /></div>
+          <span className="text-sm font-semibold text-slate-700"><span className="font-normal text-slate-500 md:hidden">Check-ins: </span>{row.checkins}</span>
+          <span className="text-sm text-slate-600"><span className="text-slate-500 md:hidden">Primeiro: </span>{formatDate(row.first_checkin)}</span>
+          <span className="text-sm text-slate-600"><span className="text-slate-500 md:hidden">Último: </span>{formatDate(row.last_checkin)}</span>
         </div>
       ))}
     </div>

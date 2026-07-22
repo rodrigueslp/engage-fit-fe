@@ -28,6 +28,7 @@ export function WorkoutsPage() {
   const [loadingRecipientsDraftId, setLoadingRecipientsDraftId] = useState('');
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
+  const [section, setSection] = useState<'compose' | 'history'>('compose');
 
   const selectedStudents = useMemo(
     () => students.filter((student) => selectedStudentIds.includes(student.id)),
@@ -130,6 +131,7 @@ export function WorkoutsPage() {
   }
 
   async function removeWorkout(workoutId: string) {
+    if (!window.confirm('Remover este treino e seu histórico de mensagens?')) return;
     setError('');
     setRemovingWorkoutId(workoutId);
     try {
@@ -155,7 +157,12 @@ export function WorkoutsPage() {
       {error && <ErrorState message={error} />}
       {status && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{status}</div>}
 
-      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-panel" role="tablist" aria-label="Seções de treino">
+        <button type="button" role="tab" aria-selected={section === 'compose'} className={`min-h-10 rounded-lg px-4 text-sm font-bold ${section === 'compose' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`} onClick={() => setSection('compose')}>Preparar envio</button>
+        <button type="button" role="tab" aria-selected={section === 'history'} className={`min-h-10 rounded-lg px-4 text-sm font-bold ${section === 'history' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`} onClick={() => setSection('history')}>Histórico ({workoutsWithDrafts.length})</button>
+      </div>
+
+      {section === 'compose' && <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <Card>
           <CardHeader><h2 className="text-base font-bold text-slate-950">Gerar e enviar treino</h2></CardHeader>
           <CardContent>
@@ -215,9 +222,9 @@ export function WorkoutsPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div>}
 
-      <Card>
+      {section === 'history' && <Card>
         <CardHeader><h2 className="text-base font-bold text-slate-950">Histórico de treinos enviados</h2></CardHeader>
         <CardContent className="space-y-3">
           {!draftsLoaded ? <LoadingState /> : workoutsWithDrafts.length === 0 ? <EmptyState message="Nenhuma mensagem gerada ainda" /> : workoutsWithDrafts.map((workout) => {
@@ -262,7 +269,7 @@ export function WorkoutsPage() {
             );
           })}
         </CardContent>
-      </Card>
+      </Card>}
     </div>
   );
 }

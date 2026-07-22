@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, CheckCircle2, Gift, MessageCircle, RefreshCw, Target, Users } from 'lucide-react';
+import { Activity, AlertTriangle, ArrowRight, CheckCircle2, Gift, Target, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
 import { KpiCard } from '../../components/common/KpiCard';
@@ -56,23 +56,26 @@ export function DashboardPage() {
     <div className="space-y-5">
       <PageHeader title="Dashboard" eyebrow="Operação do dia" description="Acompanhe metas, alunos em risco, brindes pendentes e os próximos passos da campanha." />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-        <KpiCard label="Alunos" value={summary?.total_students ?? 0} icon={Users} />
-        <KpiCard label="Check-ins" value={summary?.total_checkins ?? 0} icon={Activity} />
-        <KpiCard label="Elegíveis" value={summary?.eligible_students ?? 0} icon={CheckCircle2} />
-        <KpiCard label="Próximos" value={summary?.near_goal_students ?? 0} icon={Target} />
-        <KpiCard label="Em risco" value={summary?.at_risk_students ?? 0} icon={AlertTriangle} />
-        <KpiCard label="Brindes" value={summary?.pending_rewards ?? 0} icon={Gift} />
+      <Card className="overflow-hidden border-slate-300">
+        <CardHeader className="bg-slate-950 text-white">
+          <h2 className="text-base font-bold">Hoje precisa de atenção</h2>
+          <p className="mt-1 text-sm text-slate-300">Prioridades operacionais para manter alunos e campanhas em dia.</p>
+        </CardHeader>
+        <CardContent className="grid gap-3 p-3 md:grid-cols-3">
+          <AttentionItem label="Alunos em risco" value={atRisk.length} description="Precisam de acompanhamento" icon={AlertTriangle} tone="danger" page="dashboard" />
+          <AttentionItem label="Brindes pendentes" value={pendingRewards.length} description="Aguardando entrega" icon={Gift} tone="warning" page="rewards" />
+          <AttentionItem label="Próximos da meta" value={nearGoal.length} description="Uma boa hora para incentivar" icon={Target} tone="info" page="dashboard" />
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <KpiCard label="Alunos ativos" value={summary?.total_students ?? 0} icon={Users} tone="neutral" />
+        <KpiCard label="Check-ins registrados" value={summary?.total_checkins ?? 0} icon={Activity} tone="info" />
+        <KpiCard label="Metas atingidas" value={summary?.eligible_students ?? 0} icon={CheckCircle2} tone="success" />
+        <KpiCard label="Campanhas ativas" value={campaigns.length} icon={Target} tone="brand" />
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
-        <ShortcutButton label="Brindes" description="Baixar entregas pendentes" icon={Gift} page="rewards" />
-        <ShortcutButton label="Relatórios" description="Exportar recortes operacionais" icon={CheckCircle2} page="reports" />
-        <ShortcutButton label="WhatsApp" description="Disparos e falhas recentes" icon={MessageCircle} page="whatsapp" />
-        <ShortcutButton label="Automação" description="Histórico da rotina diária" icon={RefreshCw} page="automation" />
-      </div>
-
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className="grid gap-5 xl:grid-cols-3">
         <PaginatedDashboardList
           title="Campanhas ativas"
           items={campaigns}
@@ -86,12 +89,6 @@ export function DashboardPage() {
               <StatusBadge value="active" label="Ativa" />
             </div>
           )}
-        />
-        <PaginatedDashboardList
-          title="Próximos da meta"
-          items={nearGoal}
-          emptyMessage="Nenhum aluno próximo da meta"
-          renderItem={(student) => <StudentRow key={student.id} student={student} />}
         />
         <PaginatedDashboardList
           title="Alunos em risco"
@@ -119,18 +116,17 @@ export function DashboardPage() {
   );
 }
 
-function ShortcutButton({ label, description, icon: Icon, page }: { label: string; description: string; icon: React.ElementType; page: string }) {
+function AttentionItem({ label, value, description, icon: Icon, tone, page }: { label: string; value: number; description: string; icon: React.ElementType; tone: 'danger' | 'warning' | 'info'; page: string }) {
+  const tones = { danger: 'bg-rose-50 text-rose-700', warning: 'bg-amber-50 text-amber-700', info: 'bg-sky-50 text-sky-700' };
   return (
     <button
       type="button"
-      className="flex items-center gap-3 rounded-md border border-slate-200 bg-white p-3 text-left transition hover:border-accent hover:bg-accent-soft"
+      className="group flex items-center gap-3 rounded-lg p-3 text-left transition hover:bg-slate-50"
       onClick={() => { window.location.hash = page; }}
     >
-      <span className="flex h-9 w-9 items-center justify-center rounded-md bg-slate-100 text-slate-700"><Icon className="h-4 w-4" /></span>
-      <span>
-        <span className="block text-sm font-bold text-slate-950">{label}</span>
-        <span className="block text-xs font-semibold text-slate-500">{description}</span>
-      </span>
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${tones[tone]}`}><Icon className="h-5 w-5" /></span>
+      <span className="min-w-0 flex-1"><span className="block text-2xl font-bold text-slate-950">{value}</span><span className="block text-sm font-bold text-slate-800">{label}</span><span className="block text-xs text-slate-500">{description}</span></span>
+      <ArrowRight className="h-4 w-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-slate-600" />
     </button>
   );
 }
@@ -173,18 +169,6 @@ function PaginatedDashboardList<T>({ title, items, emptyMessage, renderItem }: {
         )}
       </CardContent>
     </Card>
-  );
-}
-
-function StudentRow({ student, warning = false }: { student: Student; warning?: boolean }) {
-  return (
-    <div className="flex items-center justify-between border-b border-slate-100 py-3 last:border-0">
-      <div>
-        <p className="font-semibold text-slate-950">{student.name}</p>
-        <p className="text-sm text-slate-500">{student.phone || student.email || student.external_id}</p>
-      </div>
-      <StatusBadge value={warning ? 'warning' : student.source} label={warning ? 'Risco' : student.source} />
-    </div>
   );
 }
 

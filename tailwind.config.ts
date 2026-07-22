@@ -9,13 +9,13 @@ export default {
       },
       colors: {
         accent: {
-          DEFAULT: '#f97316',
+          DEFAULT: '#c2410c',
           soft: '#fff7ed',
-          dark: '#c2410c',
+          dark: '#9a3412',
         },
       },
       boxShadow: {
-        panel: '0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.08)',
+        panel: '0 1px 2px rgba(15, 23, 42, 0.05)',
       },
     },
   },

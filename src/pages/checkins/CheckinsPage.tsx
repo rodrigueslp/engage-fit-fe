@@ -1,4 +1,4 @@
-import { Activity, CalendarDays, Users } from 'lucide-react';
+import { Activity, Gauge, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
@@ -102,7 +102,7 @@ export function CheckinsPage() {
       <div className="grid gap-3 sm:grid-cols-3">
         <Metric label="Check-ins no período" value={totalCheckins} icon={Activity} />
         <Metric label="Alunos com presença" value={rows.length} icon={Users} />
-        <Metric label="Dias consultados" value={daysInclusive(appliedPeriod.start, appliedPeriod.end)} icon={CalendarDays} />
+        <Metric label="Média por aluno" value={rows.length ? Math.round((totalCheckins / rows.length) * 10) / 10 : 0} icon={Gauge} />
       </div>
 
       <Card>
@@ -133,7 +133,22 @@ export function CheckinsPage() {
           ) : filtered.length === 0 ? (
             <div className="p-5"><EmptyState message="Nenhum check-in encontrado para os filtros informados" /></div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="divide-y divide-slate-100 md:hidden">
+                {visibleRows.map((row) => (
+                  <div key={row.student_id} className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0"><p className="font-bold text-slate-950">{row.student_name}</p><p className="mt-0.5 text-xs text-slate-500">{row.student_phone || 'Sem telefone'}</p></div>
+                      <StatusBadge value={row.source} label={row.source} />
+                    </div>
+                    <div className="mt-3 grid grid-cols-[auto_1fr] gap-4 rounded-lg bg-slate-50 p-3">
+                      <div><p className="text-xs text-slate-500">Check-ins</p><p className="text-xl font-bold text-slate-950">{row.checkins}</p></div>
+                      <div className="text-right text-xs text-slate-500"><p>Primeiro: <strong className="text-slate-700">{formatDate(row.first_checkin)}</strong></p><p className="mt-1">Último: <strong className="text-slate-700">{formatDate(row.last_checkin)}</strong></p></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="hidden overflow-x-auto md:block">
               <div className="grid min-w-[760px] grid-cols-[1.5fr_130px_110px_140px_140px] border-b border-slate-100 px-5 py-3 text-xs font-bold uppercase text-slate-500">
                 <span>Aluno</span>
                 <span>Plataforma</span>
@@ -153,17 +168,18 @@ export function CheckinsPage() {
                   <span className="text-sm text-slate-600">{formatDate(row.last_checkin)}</span>
                 </div>
               ))}
-              <div className="flex min-w-[760px] items-center justify-between gap-3 px-5 py-3">
+              </div>
+              <div className="flex flex-col items-start justify-between gap-3 border-t border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
                 <span className="text-xs font-semibold text-slate-500">
                   {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} de {filtered.length} alunos
                 </span>
-                <div className="flex items-center gap-2">
-                  <Button type="button" variant="secondary" className="h-8 px-2 text-xs" disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Anterior</Button>
+                <div className="flex w-full items-center justify-between gap-2 sm:w-auto">
+                  <Button type="button" variant="secondary" className="px-2 text-xs" disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Anterior</Button>
                   <span className="text-xs font-semibold text-slate-500">Página {currentPage} de {totalPages}</span>
-                  <Button type="button" variant="secondary" className="h-8 px-2 text-xs" disabled={currentPage === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>Próxima</Button>
+                  <Button type="button" variant="secondary" className="px-2 text-xs" disabled={currentPage === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>Próxima</Button>
                 </div>
               </div>
-            </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -200,13 +216,6 @@ function localDate(value: Date) {
   const month = String(value.getMonth() + 1).padStart(2, '0');
   const day = String(value.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-}
-
-function daysInclusive(start: string, end: string) {
-  if (!start || !end || end < start) return 0;
-  const startTime = new Date(`${start}T00:00:00Z`).getTime();
-  const endTime = new Date(`${end}T00:00:00Z`).getTime();
-  return Math.round((endTime - startTime) / 86_400_000) + 1;
 }
 
 function formatDate(value: string) {

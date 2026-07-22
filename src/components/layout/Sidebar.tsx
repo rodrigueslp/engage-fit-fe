@@ -3,7 +3,8 @@ import type { Capabilities, CurrentUser } from '../../features/api/types';
 import { navItemsForRole } from './navItems';
 
 export function Sidebar({ currentPage, onNavigate, user, capabilities }: { currentPage: PageKey; onNavigate: (page: PageKey) => void; user?: CurrentUser; capabilities: Capabilities }) {
-	const navItems = navItemsForRole(user?.role, capabilities);
+  const navItems = navItemsForRole(user?.role, capabilities);
+  const groups = Array.from(new Set(navItems.map((item) => item.group)));
   return (
     <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:block">
       <div className="flex h-16 items-center border-b border-slate-200 px-5">
@@ -11,8 +12,10 @@ export function Sidebar({ currentPage, onNavigate, user, capabilities }: { curre
           <img src="/engagefit-logo-cropped.png" alt="EngageFit" className="h-11 w-auto" />
         </button>
       </div>
-      <nav className="space-y-1 p-3">
-        {navItems.map((item) => {
+      <nav className="space-y-5 p-3" aria-label="Navegação principal">
+        {groups.map((group) => <div key={group}>
+          <p className="mb-1.5 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">{group}</p>
+          <div className="space-y-1">{navItems.filter((item) => item.group === group).map((item) => {
           const Icon = item.icon;
           const active = currentPage === item.key;
           return (
@@ -27,7 +30,8 @@ export function Sidebar({ currentPage, onNavigate, user, capabilities }: { curre
               {item.label}
             </button>
           );
-        })}
+        })}</div>
+        </div>)}
       </nav>
     </aside>
   );

@@ -18,12 +18,13 @@ test('owner critical flow', async ({ page, request }) => {
   await expect(page.getByText(email)).toBeVisible();
 
   await page.getByRole('button', { name: 'Importações' }).click();
-  await page.locator('select').selectOption('totalpass');
+  await page.getByRole('radio', { name: 'TotalPass' }).click();
   await page.locator('input[type=file]').setInputFiles({ name: 'checkins.csv', mimeType: 'text/csv', buffer: Buffer.from('nome,email,telefone,data,hora\nAluno E2E,aluno-e2e@example.test,+5511999999999,2026-07-20,08:30\n') });
-  await page.getByRole('button', { name: 'Enviar' }).click();
+  await page.getByRole('button', { name: 'Importar check-ins' }).click();
   await expect(page.getByText('checkins.csv')).toBeVisible();
 
   await page.getByRole('button', { name: 'Campanhas' }).click();
+  await page.getByRole('button', { name: 'Nova campanha' }).first().click();
   await page.getByPlaceholder('Nome da campanha').fill('Campanha E2E');
   await page.getByPlaceholder('Descrição').first().fill('Fluxo Playwright');
   await page.locator('input[type=date]').nth(0).fill('2026-07-01');
@@ -47,12 +48,13 @@ test('owner critical flow', async ({ page, request }) => {
 
   await page.getByRole('button', { name: 'Alunos' }).click();
   await expect(page.getByText('Aluno E2E')).toBeVisible();
+  await page.locator('summary').filter({ hasText: 'Ações de privacidade' }).click();
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Exportar' }).click();
+  await page.getByRole('button', { name: 'Exportar dados' }).click();
   await download;
   await page.locator('tbody select').selectOption('opted_out');
   page.on('dialog', (dialog) => dialog.accept(dialog.type() === 'prompt' ? 'Solicitação do titular E2E' : undefined));
-  await page.getByRole('button', { name: 'Anonimizar' }).click();
+  await page.getByRole('button', { name: 'Anonimizar aluno' }).click();
   await expect(page.getByText('Aluno anonimizado')).toBeVisible();
 
   await page.getByRole('button', { name: 'Configurações' }).click();
