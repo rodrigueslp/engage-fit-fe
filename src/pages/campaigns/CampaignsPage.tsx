@@ -17,6 +17,7 @@ type CampaignDetails = {
 };
 
 type CampaignView = 'create' | 'list' | 'details';
+const progressPageSize = 10;
 
 export function CampaignsPage() {
   const [view, setView] = useState<CampaignView>('create');
@@ -629,6 +630,16 @@ function CampaignOperationalPanel({
   averageProgress: number;
   onRecalculate: () => void;
 }) {
+  const [progressPage, setProgressPage] = useState(1);
+  const progressTotalPages = Math.max(1, Math.ceil(details.progress.length / progressPageSize));
+  const currentProgressPage = Math.min(progressPage, progressTotalPages);
+  const visibleProgress = details.progress.slice(
+    (currentProgressPage - 1) * progressPageSize,
+    currentProgressPage * progressPageSize,
+  );
+
+  useEffect(() => setProgressPage(1), [campaign?.id]);
+
   if (!campaign) {
     return (
       <Card>
@@ -723,7 +734,7 @@ function CampaignOperationalPanel({
                   <EmptyState message="Nenhum progresso calculado" />
                 </div>
               ) : (
-                details.progress.slice(0, 8).map((item) => (
+                visibleProgress.map((item) => (
                   <div key={item.id} className="grid min-w-[620px] grid-cols-[1fr_120px_110px_120px] items-center border-b border-slate-100 px-4 py-3 last:border-b-0">
                     <div>
                       <p className="text-sm font-semibold text-slate-950">{item.student_name ?? item.student_id}</p>
@@ -734,6 +745,22 @@ function CampaignOperationalPanel({
                     <StatusBadge value={item.achieved ? 'achieved' : item.near_goal ? 'near' : 'open'} label={item.achieved ? 'Meta' : item.near_goal ? 'Próximo' : 'Aberto'} />
                   </div>
                 ))
+              )}
+              {details.progress.length > 0 && (
+                <div className="flex min-w-[620px] items-center justify-between gap-3 px-4 py-3">
+                  <span className="text-xs font-semibold text-slate-500">
+                    {(currentProgressPage - 1) * progressPageSize + 1}–{Math.min(currentProgressPage * progressPageSize, details.progress.length)} de {details.progress.length} alunos
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="secondary" className="h-8 px-2 text-xs" disabled={currentProgressPage === 1} onClick={() => setProgressPage((value) => Math.max(1, value - 1))}>
+                      Anterior
+                    </Button>
+                    <span className="text-xs font-semibold text-slate-500">Página {currentProgressPage} de {progressTotalPages}</span>
+                    <Button type="button" variant="secondary" className="h-8 px-2 text-xs" disabled={currentProgressPage === progressTotalPages} onClick={() => setProgressPage((value) => Math.min(progressTotalPages, value + 1))}>
+                      Próxima
+                    </Button>
+                  </div>
+                </div>
               )}
             </div>
           </div>

@@ -4,6 +4,7 @@ import { api } from '../features/api/endpoints';
 import type { Box, Capabilities, CurrentUser } from '../features/api/types';
 import { AutomationPage } from '../pages/automation/AutomationPage';
 import { CampaignsPage } from '../pages/campaigns/CampaignsPage';
+import { CheckinsPage } from '../pages/checkins/CheckinsPage';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
 import { EmailPage } from '../pages/email/EmailPage';
 import { ImportsPage } from '../pages/imports/ImportsPage';
@@ -18,9 +19,9 @@ import { LoadingState } from '../components/common/State';
 import { ShowcasePage } from '../pages/showcase/ShowcasePage';
 import { MessagingGovernancePage } from '../pages/admin/MessagingGovernancePage';
 
-export type PageKey = 'showcase' | 'dashboard' | 'campaigns' | 'rewards' | 'students' | 'imports' | 'whatsapp' | 'workouts' | 'email' | 'automation' | 'reports' | 'settings' | 'admin-messaging';
+export type PageKey = 'showcase' | 'dashboard' | 'campaigns' | 'rewards' | 'students' | 'checkins' | 'imports' | 'whatsapp' | 'workouts' | 'email' | 'automation' | 'reports' | 'settings' | 'admin-messaging';
 
-const pageKeys: PageKey[] = ['showcase', 'dashboard', 'campaigns', 'rewards', 'students', 'imports', 'whatsapp', 'workouts', 'email', 'automation', 'reports', 'settings', 'admin-messaging'];
+const pageKeys: PageKey[] = ['showcase', 'dashboard', 'campaigns', 'rewards', 'students', 'checkins', 'imports', 'whatsapp', 'workouts', 'email', 'automation', 'reports', 'settings', 'admin-messaging'];
 
 function pageFromHash(): PageKey {
   const hashPage = window.location.hash.replace(/^#\/?/, '');
@@ -115,6 +116,7 @@ export function App() {
       {page === 'campaigns' && <CampaignsPage />}
       {page === 'rewards' && <RewardsPage />}
       {page === 'students' && <StudentsPage />}
+      {page === 'checkins' && <CheckinsPage />}
       {page === 'imports' && <ImportsPage />}
       {page === 'whatsapp' && capabilities.whatsapp && <WhatsappPage />}
       {page === 'workouts' && capabilities.workouts && <WorkoutsPage />}

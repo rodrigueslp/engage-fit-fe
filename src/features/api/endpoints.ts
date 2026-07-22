@@ -279,5 +279,7 @@ export const api = {
   eligibleStudentsReport: () => apiRequest<EligibleStudentReport[]>('/api/v1/reports/eligible-students'),
   pendingRewardsReport: () => apiRequest<RewardDelivery[]>('/api/v1/reports/pending-rewards'),
   monthlyFrequencyReport: (month: string) => apiRequest<MonthlyFrequencyReport[]>(`/api/v1/reports/monthly-frequency?month=${month}`),
+  checkinSummary: (startDate: string, endDate: string) =>
+    apiRequest<MonthlyFrequencyReport[]>(`/api/v1/checkins/summary?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`),
   downloadReport: (path: string) => apiDownload(path),
 };

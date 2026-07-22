@@ -1,4 +1,4 @@
-import { BarChart3, Dumbbell, Gift, MessageCircle, RefreshCw, Settings, ShieldCheck, Target, Upload, Users } from 'lucide-react';
+import { Activity, BarChart3, Dumbbell, Gift, MessageCircle, RefreshCw, Settings, ShieldCheck, Target, Upload, Users } from 'lucide-react';
 import type { PageKey } from '../../app/App';
 import type { Capabilities } from '../../features/api/types';
 
@@ -7,6 +7,7 @@ export const navItems: Array<{ key: PageKey; label: string; icon: typeof BarChar
   { key: 'campaigns', label: 'Campanhas', icon: Target },
   { key: 'rewards', label: 'Brindes', icon: Gift },
   { key: 'students', label: 'Alunos', icon: Users },
+  { key: 'checkins', label: 'Check-ins', icon: Activity },
   { key: 'imports', label: 'Importações', icon: Upload },
   { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
   { key: 'automation', label: 'Automação', icon: RefreshCw },
