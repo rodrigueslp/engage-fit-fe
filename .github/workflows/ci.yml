@@ -71,9 +71,13 @@ jobs:
           (cd backend && go run ./cmd/api > api-e2e.log 2>&1) &
           API_PID=$!
           trap 'kill "$API_PID" 2>/dev/null || true; cat backend/api-e2e.log' EXIT
-          for attempt in $(seq 1 30); do
-            curl --fail --silent http://localhost:18084/health/ready && break
+          for attempt in $(seq 1 90); do
+            curl --fail --silent http://127.0.0.1:18084/health/ready && break
+            if ! kill -0 "$API_PID" 2>/dev/null; then
+              echo "API process exited before becoming ready"
+              exit 1
+            fi
             sleep 1
           done
-          curl --fail --silent http://localhost:18084/health/ready
+          curl --fail --silent http://127.0.0.1:18084/health/ready
           npm run test:e2e:real
