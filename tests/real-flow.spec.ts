@@ -41,21 +41,21 @@ test('owner critical flow', async ({ page, request }) => {
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
   await expect(page.getByText('Aluno E2E').first()).toBeVisible();
   await page.getByRole('button', { name: 'Brindes' }).first().click();
-  await expect(page.getByText('Brinde E2E').first()).toBeVisible();
+  await expect(page.getByText('Brinde E2E').last()).toBeVisible();
   await page.getByRole('button', { name: 'Marcar entregue' }).click();
   await page.locator('select').selectOption('delivered');
-  await expect(page.getByText('Entregue', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('Entregue', { exact: true }).last()).toBeVisible();
 
   await page.getByRole('button', { name: 'Alunos' }).click();
-  await expect(page.getByText('Aluno E2E')).toBeVisible();
-  await page.locator('summary').filter({ hasText: 'Ações de privacidade' }).click();
+  await expect(page.getByRole('cell', { name: 'Aluno E2E' })).toBeVisible();
+  await page.locator('tbody summary').click();
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Exportar dados' }).click();
   await download;
   await page.locator('tbody select').selectOption('opted_out');
   page.on('dialog', (dialog) => dialog.accept(dialog.type() === 'prompt' ? 'Solicitação do titular E2E' : undefined));
   await page.getByRole('button', { name: 'Anonimizar aluno' }).click();
-  await expect(page.getByText('Aluno anonimizado')).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'Aluno anonimizado' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Configurações' }).click();
   await page.getByRole('button', { name: /Acesso e segurança/ }).click();
