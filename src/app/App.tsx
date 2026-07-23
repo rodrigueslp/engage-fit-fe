@@ -18,10 +18,12 @@ import { WorkoutsPage } from '../pages/workouts/WorkoutsPage';
 import { LoadingState } from '../components/common/State';
 import { ShowcasePage } from '../pages/showcase/ShowcasePage';
 import { MessagingGovernancePage } from '../pages/admin/MessagingGovernancePage';
+import { BillingManagementPage } from '../pages/admin/BillingManagementPage';
+import { BillingPage } from '../pages/billing/BillingPage';
 
-export type PageKey = 'showcase' | 'dashboard' | 'campaigns' | 'rewards' | 'students' | 'checkins' | 'imports' | 'whatsapp' | 'workouts' | 'email' | 'automation' | 'reports' | 'settings' | 'admin-messaging';
+export type PageKey = 'showcase' | 'dashboard' | 'campaigns' | 'rewards' | 'students' | 'checkins' | 'imports' | 'whatsapp' | 'workouts' | 'email' | 'automation' | 'reports' | 'settings' | 'billing' | 'admin-messaging' | 'admin-billing';
 
-const pageKeys: PageKey[] = ['showcase', 'dashboard', 'campaigns', 'rewards', 'students', 'checkins', 'imports', 'whatsapp', 'workouts', 'email', 'automation', 'reports', 'settings', 'admin-messaging'];
+const pageKeys: PageKey[] = ['showcase', 'dashboard', 'campaigns', 'rewards', 'students', 'checkins', 'imports', 'whatsapp', 'workouts', 'email', 'automation', 'reports', 'settings', 'billing', 'admin-messaging', 'admin-billing'];
 
 function pageFromHash(): PageKey {
   const hashPage = window.location.hash.replace(/^#\/?/, '');
@@ -33,17 +35,17 @@ export function App() {
   const [user, setUser] = useState<CurrentUser>();
   const [box, setBox] = useState<Box>();
   const [checkingSession, setCheckingSession] = useState(true);
-  const [capabilities, setCapabilities] = useState<Capabilities>({ whatsapp: false, email: false, automation: false, workouts: false, llm: false });
+  const [capabilities, setCapabilities] = useState<Capabilities>({ whatsapp: false, email: false, automation: false, workouts: false, llm: false, billing: false });
 
   async function loadSession() {
-    const enabled = await api.capabilities().catch(() => ({ whatsapp: false, email: false, automation: false, workouts: false, llm: false }));
+    const enabled = await api.capabilities().catch(() => ({ whatsapp: false, email: false, automation: false, workouts: false, llm: false, billing: false }));
     setCapabilities(enabled);
     try {
       const currentUser = await api.me();
       const currentBox = currentUser.role === 'PLATFORM_ADMIN' ? undefined : await api.box();
       setUser(currentUser);
       setBox(currentBox);
-      if (currentUser.role === 'PLATFORM_ADMIN' && pageFromHash() !== 'admin-messaging') {
+      if (currentUser.role === 'PLATFORM_ADMIN' && !['admin-messaging', 'admin-billing'].includes(pageFromHash())) {
         window.location.hash = 'admin-messaging';
         setPage('admin-messaging');
       }
@@ -63,7 +65,8 @@ export function App() {
     const disabled = (page === 'whatsapp' && !capabilities.whatsapp)
       || (page === 'automation' && !capabilities.automation)
       || (page === 'email' && !capabilities.email)
-      || (page === 'workouts' && !capabilities.workouts);
+      || (page === 'workouts' && !capabilities.workouts)
+      || ((page === 'billing' || page === 'admin-billing') && !capabilities.billing);
     if (disabled) {
       window.location.hash = 'dashboard';
       setPage('dashboard');
@@ -106,6 +109,7 @@ export function App() {
     if (nextPage === 'automation' && !capabilities.automation) nextPage = 'dashboard';
     if (nextPage === 'email' && !capabilities.email) nextPage = 'dashboard';
     if (nextPage === 'workouts' && !capabilities.workouts) nextPage = 'dashboard';
+    if ((nextPage === 'billing' || nextPage === 'admin-billing') && !capabilities.billing) nextPage = 'dashboard';
     setPage(nextPage);
     window.location.hash = nextPage;
   }
@@ -124,7 +128,9 @@ export function App() {
       {page === 'automation' && capabilities.automation && <AutomationPage />}
       {page === 'reports' && <ReportsPage />}
       {page === 'settings' && <SettingsPage whatsappEnabled={capabilities.whatsapp} onSessionRevoked={() => { setUser(undefined); setBox(undefined); }} />}
+      {page === 'billing' && capabilities.billing && user.role !== 'PLATFORM_ADMIN' && <BillingPage />}
       {page === 'admin-messaging' && user.role === 'PLATFORM_ADMIN' && <MessagingGovernancePage whatsappEnabled={capabilities.whatsapp} />}
+      {page === 'admin-billing' && capabilities.billing && user.role === 'PLATFORM_ADMIN' && <BillingManagementPage />}
     </AppLayout>
   );
 }

@@ -10,6 +10,7 @@ export type Capabilities = {
   automation: boolean;
   workouts: boolean;
   llm: boolean;
+  billing: boolean;
 };
 
 export type CurrentUser = {
@@ -40,6 +41,99 @@ export type AdminBox = {
   owner_name: string;
   owner_email: string;
   created_at: string;
+};
+
+export type BillingPlan = {
+  id: string;
+  code: string;
+  version: number;
+  name: string;
+  description: string;
+  monthly_price_cents: number;
+  currency: string;
+  monthly_message_limit: number;
+  daily_message_limit: number;
+  per_dispatch_limit: number;
+  warning_percent: number;
+  grace_period_days: number;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BillingCustomer = {
+  id: string;
+  box_id: string;
+  provider: string;
+  provider_customer_id?: string;
+  legal_name: string;
+  cpf_cnpj: string;
+  email: string;
+  phone: string;
+  postal_code: string;
+  address: string;
+  address_number: string;
+  complement: string;
+  province: string;
+  city: string;
+  state: string;
+  notification_disabled: boolean;
+};
+
+export type BillingSubscription = {
+  id: string;
+  box_id: string;
+  plan_id: string;
+  provider: string;
+  provider_subscription_id?: string;
+  status: 'trialing' | 'pending' | 'active' | 'past_due' | 'suspended' | 'canceled';
+  billing_type: 'UNDEFINED' | 'BOLETO' | 'CREDIT_CARD' | 'PIX';
+  next_due_date: string;
+  current_period_start?: string;
+  current_period_end?: string;
+  grace_until?: string;
+  started_at: string;
+  canceled_at?: string;
+  cancel_at_period_end: boolean;
+  last_reconciled_at?: string;
+};
+
+export type BillingInvoice = {
+  id: string;
+  status: string;
+  billing_type: string;
+  value_cents: number;
+  net_value_cents?: number;
+  due_date: string;
+  confirmed_at?: string;
+  received_at?: string;
+  invoice_url?: string;
+  bank_slip_url?: string;
+  description: string;
+  provider_payment_id?: string;
+};
+
+export type BillingOverview = {
+  box_id: string;
+  box_name: string;
+  box_status: string;
+  billing_access_blocked: boolean;
+  billing_access_reason: string;
+  customer?: BillingCustomer;
+  subscription?: BillingSubscription;
+  plan?: BillingPlan;
+  latest_invoice?: BillingInvoice;
+  invoices?: BillingInvoice[];
+};
+
+export type BillingSummary = {
+  monthly_recurring_revenue_cents: number;
+  active_subscriptions: number;
+  past_due_subscriptions: number;
+  suspended_subscriptions: number;
+  canceled_subscriptions: number;
+  pending_amount_cents: number;
+  received_this_month_cents: number;
 };
 
 export type DashboardSummary = {

@@ -37,6 +37,11 @@ import type {
   MessagingBoxOverview,
   Capabilities,
   AdminBox,
+  BillingPlan,
+  BillingOverview,
+  BillingSummary,
+  BillingCustomer,
+  BillingSubscription,
 } from './types';
 
 export type MessagingPolicyPayload = Omit<MessagingPolicy, 'id' | 'scope' | 'box_id' | 'updated_at'> & { reason: string };
@@ -194,6 +199,26 @@ export const api = {
     apiRequest<AdminBox>(`/api/v1/admin/boxes/${boxId}/reactivate`, { method: 'POST', body: JSON.stringify({ reason }) }),
   archiveAdminBox: (boxId: string, reason: string) =>
     apiRequest<AdminBox>(`/api/v1/admin/boxes/${boxId}/archive`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  billingPlans: () => apiRequest<BillingPlan[]>('/api/v1/admin/billing/plans'),
+  createBillingPlan: (payload: Omit<BillingPlan, 'id' | 'currency' | 'created_at' | 'updated_at'> & { reason: string }) =>
+    apiRequest<BillingPlan>('/api/v1/admin/billing/plans', { method: 'POST', body: JSON.stringify(payload) }),
+  updateBillingPlan: (planId: string, payload: Omit<BillingPlan, 'id' | 'currency' | 'created_at' | 'updated_at'> & { reason: string }) =>
+    apiRequest<BillingPlan>(`/api/v1/admin/billing/plans/${planId}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  billingSummary: () => apiRequest<BillingSummary>('/api/v1/admin/billing/summary'),
+  billingBoxes: () => apiRequest<BillingOverview[]>('/api/v1/admin/billing/boxes'),
+  billingBox: (boxId: string) => apiRequest<BillingOverview>(`/api/v1/admin/billing/boxes/${boxId}`),
+  saveBillingCustomer: (boxId: string, payload: Omit<BillingCustomer, 'id' | 'box_id' | 'provider' | 'provider_customer_id'> & { reason: string }) =>
+    apiRequest<BillingCustomer>(`/api/v1/admin/billing/boxes/${boxId}/customer`, { method: 'PUT', body: JSON.stringify(payload) }),
+  createBillingSubscription: (boxId: string, payload: { plan_id: string; billing_type: BillingSubscription['billing_type']; next_due_date: string; end_date?: string; reason: string }) =>
+    apiRequest<BillingSubscription>(`/api/v1/admin/billing/boxes/${boxId}/subscription`, {
+      method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify(payload),
+    }),
+  cancelBillingSubscription: (boxId: string, reason: string) =>
+    apiRequest<void>(`/api/v1/admin/billing/boxes/${boxId}/subscription/cancel`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  grantBillingGrace: (boxId: string, until: string, reason: string) =>
+    apiRequest<void>(`/api/v1/admin/billing/boxes/${boxId}/subscription/grace`, { method: 'POST', body: JSON.stringify({ until, reason }) }),
+  reconcileBilling: () => apiRequest<void>('/api/v1/admin/billing/reconcile', { method: 'POST' }),
+  ownerBilling: () => apiRequest<BillingOverview>('/api/v1/billing'),
 
   emailSettings: () => apiRequest<EmailSettings>('/api/v1/email/settings'),
   updateEmailSettings: (payload: { provider: 'smtp' | 'mock'; smtp_host: string; smtp_port: number; username: string; password: string; from_email: string; from_name: string; enabled: boolean }) =>
