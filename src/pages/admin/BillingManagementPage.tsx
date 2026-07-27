@@ -56,6 +56,9 @@ function PlanEditor({ plans, saving, onSaved }: { plans: BillingPlan[]; saving: 
   const [form, setForm] = useState<PlanForm>(emptyPlan);
   const [editingID, setEditingID] = useState('');
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [visibility, setVisibility] = useState<'active' | 'all' | 'inactive'>('active');
+  const visiblePlans = plans.filter((plan) => visibility === 'all' || (visibility === 'active' ? plan.active : !plan.active));
 
   function edit(plan: BillingPlan) {
     setEditingID(plan.id);
@@ -66,22 +69,45 @@ function PlanEditor({ plans, saving, onSaved }: { plans: BillingPlan[]; saving: 
   }
 
   async function submit(event: FormEvent) {
-    event.preventDefault(); setError('');
+    event.preventDefault(); setError(''); setBusy(true);
     try {
       if (editingID) await api.updateBillingPlan(editingID, form);
       else await api.createBillingPlan(form);
       setEditingID(''); setForm(emptyPlan); await onSaved();
     } catch (err) { setError(err instanceof Error ? err.message : 'Não foi possível salvar o plano'); }
+    finally { setBusy(false); }
+  }
+
+  async function changeAvailability(active: boolean) {
+    if (!editingID || !form.reason.trim()) return;
+    if (!active && !window.confirm(`Desativar o plano "${form.name}"? Ele deixará de aparecer para novas assinaturas.`)) return;
+    setError(''); setBusy(true);
+    try {
+      await api.updateBillingPlan(editingID, { ...form, active });
+      setEditingID(''); setForm(emptyPlan); await onSaved();
+    } catch (err) { setError(err instanceof Error ? err.message : 'Não foi possível alterar a disponibilidade do plano'); }
+    finally { setBusy(false); }
   }
 
   const number = (field: keyof PlanForm, value: string) => setForm((current) => ({ ...current, [field]: Number(value) }));
   return <Card>
     <CardHeader><div className="flex items-center gap-3"><WalletCards className="h-5 w-5 text-accent" /><div><h2 className="font-bold text-slate-950">Planos comerciais</h2><p className="text-sm text-slate-500">Um preço mensal único já inclui a franquia de mensagens definida aqui.</p></div></div></CardHeader>
     <CardContent className="space-y-5">
-      <div className="grid gap-3 lg:grid-cols-2">{plans.map((plan) => <button type="button" key={plan.id} onClick={() => edit(plan)} className={`rounded-lg border p-4 text-left ${editingID === plan.id ? 'border-accent bg-blue-50' : 'border-slate-200'}`}>
-        <div className="flex justify-between gap-3"><div><p className="font-bold text-slate-950">{plan.name} <span className="text-xs text-slate-400">v{plan.version}</span></p><p className="text-sm text-slate-500">{plan.description}</p></div><p className="font-bold text-slate-950">{money(plan.monthly_price_cents)}/mês</p></div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-500">{visiblePlans.length} {visiblePlans.length === 1 ? 'plano exibido' : 'planos exibidos'}</p>
+        <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">Exibir
+          <select aria-label="Filtrar planos" className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm" value={visibility} onChange={(event) => setVisibility(event.target.value as typeof visibility)}>
+            <option value="active">Planos ativos</option>
+            <option value="all">Todos os planos</option>
+            <option value="inactive">Planos desativados</option>
+          </select>
+        </label>
+      </div>
+      {visiblePlans.length === 0 ? <p className="rounded-lg border border-dashed border-slate-200 p-5 text-center text-sm text-slate-500">Nenhum plano nesta visualização.</p> :
+      <div className="grid gap-3 lg:grid-cols-2">{visiblePlans.map((plan) => <button type="button" key={plan.id} onClick={() => edit(plan)} className={`rounded-lg border p-4 text-left ${editingID === plan.id ? 'border-accent bg-blue-50' : 'border-slate-200'}`}>
+        <div className="flex justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><p className="font-bold text-slate-950">{plan.name} <span className="text-xs text-slate-400">v{plan.version}</span></p><span className={`rounded-full px-2 py-0.5 text-xs font-bold ${plan.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>{plan.active ? 'Ativo' : 'Desativado'}</span></div><p className="text-sm text-slate-500">{plan.description}</p></div><p className="font-bold text-slate-950">{money(plan.monthly_price_cents)}/mês</p></div>
         <p className="mt-3 text-xs font-semibold text-slate-600">{plan.monthly_message_limit} mensagens/mês · {plan.daily_message_limit}/dia · {plan.per_dispatch_limit}/disparo · {plan.grace_period_days} dias de tolerância</p>
-      </button>)}</div>
+      </button>)}</div>}
       {error && <p className="text-sm font-semibold text-rose-700">{error}</p>}
       <form className="grid gap-4 border-t border-slate-100 pt-5 md:grid-cols-3" onSubmit={submit}>
         <Field label="Código"><Input value={form.code} disabled={Boolean(editingID)} onChange={(e) => setForm((v) => ({ ...v, code: e.target.value }))} required /></Field>
@@ -94,9 +120,13 @@ function PlanEditor({ plans, saving, onSaved }: { plans: BillingPlan[]; saving: 
         <Field label="Alerta de uso (%)"><Input type="number" min={1} max={100} value={form.warning_percent} onChange={(e) => number('warning_percent', e.target.value)} required /></Field>
         <Field label="Tolerância após vencimento"><Input type="number" min={0} max={90} value={form.grace_period_days} onChange={(e) => number('grace_period_days', e.target.value)} required /></Field>
         <Field label="Descrição" className="md:col-span-2"><Input value={form.description} onChange={(e) => setForm((v) => ({ ...v, description: e.target.value }))} /></Field>
-        <label className="flex items-center gap-3 rounded-md border border-slate-200 px-3 text-sm font-semibold text-slate-700"><input type="checkbox" checked={form.active} onChange={(e) => setForm((v) => ({ ...v, active: e.target.checked }))} />Plano disponível</label>
+        <div className="flex items-center rounded-md border border-slate-200 px-3 text-sm font-semibold text-slate-700">Status: {editingID ? (form.active ? 'Ativo' : 'Desativado') : 'Ativo ao criar'}</div>
         <Field label="Motivo da alteração" className="md:col-span-2"><Input value={form.reason} onChange={(e) => setForm((v) => ({ ...v, reason: e.target.value }))} required /></Field>
-        <div className="flex gap-2 md:items-end"><Button disabled={saving}><Save className="h-4 w-4" />Salvar plano</Button>{editingID && <Button type="button" variant="secondary" onClick={() => { setEditingID(''); setForm(emptyPlan); }}>Novo</Button>}</div>
+        <div className="flex flex-wrap gap-2 md:col-span-3">
+          <Button disabled={saving || busy}><Save className="h-4 w-4" />Salvar plano</Button>
+          {editingID && <Button type="button" variant="secondary" disabled={saving || busy || !form.reason.trim()} onClick={() => void changeAvailability(!form.active)}>{form.active ? 'Desativar plano' : 'Reativar plano'}</Button>}
+          {editingID && <Button type="button" variant="secondary" disabled={saving || busy} onClick={() => { setEditingID(''); setForm(emptyPlan); }}>Novo</Button>}
+        </div>
       </form>
     </CardContent>
   </Card>;
@@ -194,7 +224,7 @@ export function BillingManagementPage() {
   const [error, setError] = useState('');
 
   async function load() {
-    const [summaryData, planData, boxData] = await Promise.all([api.billingSummary(), api.billingPlans(), api.billingBoxes()]);
+    const [summaryData, planData, boxData] = await Promise.all([api.billingSummary(), api.billingPlans('all'), api.billingBoxes()]);
     setSummary(summaryData); setPlans(planData); setBoxes(boxData);
     setSelectedID((current) => boxData.some((box) => box.box_id === current) ? current : boxData[0]?.box_id || '');
   }

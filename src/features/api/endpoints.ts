@@ -199,7 +199,8 @@ export const api = {
     apiRequest<AdminBox>(`/api/v1/admin/boxes/${boxId}/reactivate`, { method: 'POST', body: JSON.stringify({ reason }) }),
   archiveAdminBox: (boxId: string, reason: string) =>
     apiRequest<AdminBox>(`/api/v1/admin/boxes/${boxId}/archive`, { method: 'POST', body: JSON.stringify({ reason }) }),
-  billingPlans: () => apiRequest<BillingPlan[]>('/api/v1/admin/billing/plans'),
+  billingPlans: (status: 'active' | 'inactive' | 'all' = 'active') =>
+    apiRequest<BillingPlan[]>(`/api/v1/admin/billing/plans?status=${status}`),
   createBillingPlan: (payload: Omit<BillingPlan, 'id' | 'currency' | 'created_at' | 'updated_at'> & { reason: string }) =>
     apiRequest<BillingPlan>('/api/v1/admin/billing/plans', { method: 'POST', body: JSON.stringify(payload) }),
   updateBillingPlan: (planId: string, payload: Omit<BillingPlan, 'id' | 'currency' | 'created_at' | 'updated_at'> & { reason: string }) =>
