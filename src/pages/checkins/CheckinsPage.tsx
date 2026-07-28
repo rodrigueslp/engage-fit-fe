@@ -1,4 +1,4 @@
-import { Activity, Gauge, Users } from 'lucide-react';
+import { Activity, CalendarDays, Gauge, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { api } from '../../features/api/endpoints';
 import type { MonthlyFrequencyReport, Source } from '../../features/api/types';
+import { StudentAttendancePanel } from '../../components/checkins/StudentAttendancePanel';
 
 const pageSize = 10;
 
@@ -25,6 +26,7 @@ export function CheckinsPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState<MonthlyFrequencyReport>();
 
   async function load() {
     if (!startDate || !endDate || endDate < startDate) {
@@ -145,19 +147,21 @@ export function CheckinsPage() {
                       <div><p className="text-xs text-slate-500">Check-ins</p><p className="text-xl font-bold text-slate-950">{row.checkins}</p></div>
                       <div className="text-right text-xs text-slate-500"><p>Primeiro: <strong className="text-slate-700">{formatDate(row.first_checkin)}</strong></p><p className="mt-1">Último: <strong className="text-slate-700">{formatDate(row.last_checkin)}</strong></p></div>
                     </div>
+                    <Button type="button" variant="secondary" className="mt-3 w-full" onClick={() => setSelectedStudent(row)}><CalendarDays className="h-4 w-4" />Ver histórico completo</Button>
                   </div>
                 ))}
               </div>
               <div className="hidden overflow-x-auto md:block">
-              <div className="grid min-w-[760px] grid-cols-[1.5fr_130px_110px_140px_140px] border-b border-slate-100 px-5 py-3 text-xs font-bold uppercase text-slate-500">
+              <div className="grid min-w-[900px] grid-cols-[1.5fr_120px_90px_120px_120px_150px] border-b border-slate-100 px-5 py-3 text-xs font-bold uppercase text-slate-500">
                 <span>Aluno</span>
                 <span>Plataforma</span>
                 <span>Check-ins</span>
                 <span>Primeiro</span>
                 <span>Último</span>
+                <span></span>
               </div>
               {visibleRows.map((row) => (
-                <div key={row.student_id} className="grid min-w-[760px] grid-cols-[1.5fr_130px_110px_140px_140px] items-center border-b border-slate-100 px-5 py-4 last:border-b-0">
+                <div key={row.student_id} className="grid min-w-[900px] grid-cols-[1.5fr_120px_90px_120px_120px_150px] items-center border-b border-slate-100 px-5 py-4 last:border-b-0">
                   <div>
                     <p className="font-semibold text-slate-950">{row.student_name}</p>
                     <p className="mt-1 text-xs text-slate-400">{row.student_phone || 'Sem telefone'}</p>
@@ -166,6 +170,7 @@ export function CheckinsPage() {
                   <span className="text-sm font-bold text-slate-700">{row.checkins}</span>
                   <span className="text-sm text-slate-600">{formatDate(row.first_checkin)}</span>
                   <span className="text-sm text-slate-600">{formatDate(row.last_checkin)}</span>
+                  <Button type="button" variant="ghost" className="px-2 text-xs" onClick={() => setSelectedStudent(row)}><CalendarDays className="h-4 w-4" />Ver histórico</Button>
                 </div>
               ))}
               </div>
@@ -183,6 +188,7 @@ export function CheckinsPage() {
           )}
         </CardContent>
       </Card>
+      {selectedStudent && <StudentAttendancePanel student={{ id: selectedStudent.student_id, name: selectedStudent.student_name, phone: selectedStudent.student_phone, source: selectedStudent.source }} onClose={() => setSelectedStudent(undefined)} />}
     </div>
   );
 }

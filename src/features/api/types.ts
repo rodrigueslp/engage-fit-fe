@@ -162,6 +162,62 @@ export type Student = {
   anonymized_at?: string;
 };
 
+export type StudentCheckin = {
+  id: string;
+  student_id: string;
+  checkin_date: string;
+  checkin_time?: string;
+  source: Source;
+};
+
+export type EngagementLevel = 'history_insufficient' | 'healthy' | 'attention' | 'at_risk' | 'critical' | 'recovered';
+export type RetentionWorkflowStatus = 'none' | 'needs_action' | 'waiting_return' | 'follow_up_due' | 'paused' | 'closed' | 'recovered';
+
+export type RetentionRadarItem = {
+  student_id: string;
+  student_name: string;
+  student_phone: string;
+  source: Source;
+  contact_status: Student['contact_status'];
+  level: EngagementLevel;
+  first_checkin?: string;
+  last_checkin?: string;
+  days_since_checkin?: number;
+  recent_checkins: number;
+  previous_checkins: number;
+  recent_weekly_average: number;
+  previous_weekly_average: number;
+  drop_percentage?: number;
+  signals: { code: string; message: string }[];
+  last_completed_intervention?: string;
+  first_return_after_action?: string;
+  return_within_3_days: boolean;
+  return_within_7_days: boolean;
+  return_within_14_days: boolean;
+  workflow_status: RetentionWorkflowStatus;
+  follow_up_due_at?: string;
+  last_intervention_id?: string;
+  last_intervention_channel?: RetentionIntervention['channel'];
+  last_intervention_status?: RetentionIntervention['status'];
+  last_intervention_outcome?: RetentionIntervention['outcome'];
+  last_intervention_planned_for?: string;
+  last_intervention_created_at?: string;
+};
+
+export type RetentionIntervention = {
+  id: string;
+  student_id: string;
+  created_by_user_id: string;
+  channel: 'whatsapp' | 'phone' | 'in_person' | 'other';
+  status: 'planned' | 'completed' | 'cancelled';
+  outcome?: 'contacted' | 'no_response' | 'follow_up' | 'paused' | 'not_interested' | 'other';
+  planned_for?: string;
+  completed_at?: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Campaign = {
   id: string;
   name: string;

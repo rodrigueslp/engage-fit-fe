@@ -1,4 +1,4 @@
-import { Activity, BarChart3, CreditCard, Dumbbell, Gift, MessageCircle, RefreshCw, Settings, ShieldCheck, Target, Upload, Users } from 'lucide-react';
+import { Activity, BarChart3, CreditCard, Dumbbell, Gift, HeartPulse, MessageCircle, RefreshCw, Settings, ShieldCheck, Target, Upload, Users } from 'lucide-react';
 import type { PageKey } from '../../app/App';
 import type { Capabilities } from '../../features/api/types';
 
@@ -6,6 +6,7 @@ export type NavItem = { key: PageKey; label: string; icon: typeof BarChart3; gro
 
 export const navItems: NavItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: BarChart3, group: 'Visão geral' },
+  { key: 'retention', label: 'Retenção', icon: HeartPulse, group: 'Visão geral' },
   { key: 'campaigns', label: 'Campanhas', icon: Target, group: 'Operação' },
   { key: 'rewards', label: 'Brindes', icon: Gift, group: 'Operação' },
   { key: 'students', label: 'Alunos', icon: Users, group: 'Operação' },

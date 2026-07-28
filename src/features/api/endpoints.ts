@@ -27,6 +27,7 @@ import type {
   Reward,
   RewardDelivery,
   Student,
+  StudentCheckin,
   WhatsappSettings,
   Workout,
   WorkoutDraft,
@@ -42,6 +43,8 @@ import type {
   BillingSummary,
   BillingCustomer,
   BillingSubscription,
+  RetentionIntervention,
+  RetentionRadarItem,
 } from './types';
 
 export type MessagingPolicyPayload = Omit<MessagingPolicy, 'id' | 'scope' | 'box_id' | 'updated_at'> & { reason: string };
@@ -69,12 +72,21 @@ export const api = {
   nearGoalStudents: () => apiRequest<Student[]>('/api/v1/dashboard/near-goal-students'),
   atRiskStudents: () => apiRequest<Student[]>('/api/v1/dashboard/at-risk-students'),
   pendingRewards: () => apiRequest<RewardDelivery[]>('/api/v1/dashboard/pending-rewards'),
+  retentionRadar: () => apiRequest<RetentionRadarItem[]>('/api/v1/retention/radar'),
+  retentionInterventions: (studentId: string) =>
+    apiRequest<RetentionIntervention[]>(`/api/v1/students/${studentId}/retention-interventions`),
+  createRetentionIntervention: (studentId: string, payload: Pick<RetentionIntervention, 'channel' | 'status' | 'outcome' | 'notes'> & { planned_for?: string }) =>
+    apiRequest<RetentionIntervention>(`/api/v1/students/${studentId}/retention-interventions`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   rewardDeliveries: () => apiRequest<RewardDelivery[]>('/api/v1/rewards/deliveries'),
   markRewardDelivered: (deliveryId: string) =>
     apiRequest<void>(`/api/v1/reward-deliveries/${deliveryId}/deliver`, {
       method: 'PATCH',
     }),
   students: () => apiRequest<Student[]>('/api/v1/students'),
+  studentCheckins: (studentId: string) => apiRequest<StudentCheckin[]>(`/api/v1/students/${studentId}/checkins`),
   updateStudentRiskStatus: (studentId: string, riskStatus: NonNullable<Student['risk_status']>) =>
     apiRequest<void>(`/api/v1/students/${studentId}/risk-status`, {
       method: 'PATCH',

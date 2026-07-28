@@ -20,10 +20,11 @@ import { ShowcasePage } from '../pages/showcase/ShowcasePage';
 import { MessagingGovernancePage } from '../pages/admin/MessagingGovernancePage';
 import { BillingManagementPage } from '../pages/admin/BillingManagementPage';
 import { BillingPage } from '../pages/billing/BillingPage';
+import { RetentionPage } from '../pages/retention/RetentionPage';
 
-export type PageKey = 'showcase' | 'dashboard' | 'campaigns' | 'rewards' | 'students' | 'checkins' | 'imports' | 'whatsapp' | 'workouts' | 'email' | 'automation' | 'reports' | 'settings' | 'billing' | 'admin-messaging' | 'admin-billing';
+export type PageKey = 'showcase' | 'dashboard' | 'retention' | 'campaigns' | 'rewards' | 'students' | 'checkins' | 'imports' | 'whatsapp' | 'workouts' | 'email' | 'automation' | 'reports' | 'settings' | 'billing' | 'admin-messaging' | 'admin-billing';
 
-const pageKeys: PageKey[] = ['showcase', 'dashboard', 'campaigns', 'rewards', 'students', 'checkins', 'imports', 'whatsapp', 'workouts', 'email', 'automation', 'reports', 'settings', 'billing', 'admin-messaging', 'admin-billing'];
+const pageKeys: PageKey[] = ['showcase', 'dashboard', 'retention', 'campaigns', 'rewards', 'students', 'checkins', 'imports', 'whatsapp', 'workouts', 'email', 'automation', 'reports', 'settings', 'billing', 'admin-messaging', 'admin-billing'];
 
 function pageFromHash(): PageKey {
   const hashPage = window.location.hash.replace(/^#\/?/, '');
@@ -117,6 +118,7 @@ export function App() {
   return (
     <AppLayout currentPage={page} onNavigate={navigate} box={box} user={user} onLogout={logout} capabilities={capabilities}>
       {page === 'dashboard' && <DashboardPage />}
+      {page === 'retention' && <RetentionPage />}
       {page === 'campaigns' && <CampaignsPage />}
       {page === 'rewards' && <RewardsPage />}
       {page === 'students' && <StudentsPage />}
