@@ -1,4 +1,4 @@
-import { AlertTriangle, BarChart3, BookOpen, CalendarDays, CheckCircle2, Clock3, HeartPulse, Search, X } from 'lucide-react';
+import { AlertTriangle, BarChart3, BookOpen, CalendarDays, CheckCircle2, Clock3, HeartPulse, Info, Search, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { api } from '../../features/api/endpoints';
 import { retentionGuide } from '../../features/help/guides/retentionGuide';
-import type { EngagementLevel, OnboardingJourneyItem, RetentionIntervention, RetentionRadarItem, RetentionReason, RetentionSummary, RetentionWorkflowStatus, TeamMember } from '../../features/api/types';
+import type { EngagementLevel, OnboardingJourneyItem, RetentionIntervention, RetentionRadarItem, RetentionReason, RetentionRules, RetentionSummary, RetentionWorkflowStatus, TeamMember } from '../../features/api/types';
 import { StudentAttendancePanel } from '../../components/checkins/StudentAttendancePanel';
 
 const levelInfo: Record<EngagementLevel, { label: string; className: string }> = {
@@ -31,21 +31,24 @@ export function RetentionPage() {
   const [attendanceStudent, setAttendanceStudent] = useState<RetentionRadarItem>();
   const [section, setSection] = useState<'radar' | 'onboarding' | 'results'>('radar');
   const [summary, setSummary] = useState<RetentionSummary>();
+  const [rules, setRules] = useState<RetentionRules>();
   const [onboarding, setOnboarding] = useState<OnboardingJourneyItem[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [periodStart, setPeriodStart] = useState(defaultPeriodStart());
   const [periodEnd, setPeriodEnd] = useState(todayDate());
   const [guideOpen, setGuideOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   async function load() {
     setLoading(true);
     setError('');
     try {
-      const [radar, results, journey, members] = await Promise.all([api.retentionRadar(), api.retentionSummary(periodStart, periodEnd), api.onboardingJourney(), api.teamMembers()]);
+      const [radar, results, journey, members, calculationRules] = await Promise.all([api.retentionRadar(), api.retentionSummary(periodStart, periodEnd), api.onboardingJourney(), api.teamMembers(), api.retentionRules().catch(() => undefined)]);
       setItems(radar);
       setSummary(results);
       setOnboarding(journey);
       setTeam(members);
+      if (calculationRules) setRules(calculationRules);
     }
     catch (err) { setError(err instanceof Error ? err.message : 'Não foi possível carregar o radar.'); }
     finally { setLoading(false); }
@@ -71,13 +74,13 @@ export function RetentionPage() {
         title="Retenção"
         eyebrow="Quem merece atenção hoje"
         description="Sinais de mudança de frequência baseados nos check-ins. O radar apoia a decisão da equipe; não prevê cancelamentos."
-        actions={<Button variant="secondary" onClick={() => setGuideOpen(true)}><BookOpen className="h-4 w-4" />Como usar</Button>}
+        actions={<div className="flex flex-wrap gap-2"><Button variant="secondary" disabled={!rules} onClick={() => setRulesOpen(true)}><Info className="h-4 w-4" />Entenda os cálculos</Button><Button variant="secondary" onClick={() => setGuideOpen(true)}><BookOpen className="h-4 w-4" />Como usar</Button></div>}
       />
       {error && <ErrorState message={error} />}
 
       <div className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-panel" role="tablist" aria-label="Seções de retenção">
         <button type="button" role="tab" aria-selected={section === 'radar'} className={`min-h-10 rounded-lg px-4 text-sm font-bold ${section === 'radar' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`} onClick={() => setSection('radar')}>Radar e ações</button>
-        <button type="button" role="tab" aria-selected={section === 'onboarding'} className={`min-h-10 rounded-lg px-4 text-sm font-bold ${section === 'onboarding' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`} onClick={() => setSection('onboarding')}>Primeiros 30 dias ({onboarding.length})</button>
+        <button type="button" role="tab" aria-selected={section === 'onboarding'} className={`min-h-10 rounded-lg px-4 text-sm font-bold ${section === 'onboarding' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`} onClick={() => setSection('onboarding')}>Primeiros 30 dias confiáveis ({onboarding.length})</button>
         <button type="button" role="tab" aria-selected={section === 'results'} className={`min-h-10 rounded-lg px-4 text-sm font-bold ${section === 'results' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`} onClick={() => setSection('results')}>Resultados</button>
       </div>
 
@@ -125,6 +128,7 @@ export function RetentionPage() {
 
       {selected && <InterventionModal item={selected} team={team} onClose={() => setSelected(undefined)} onSaved={async () => { setSelected(undefined); await load(); }} />}
       {attendanceStudent && <StudentAttendancePanel student={{ id: attendanceStudent.student_id, name: attendanceStudent.student_name, phone: attendanceStudent.student_phone, source: attendanceStudent.source }} onClose={() => setAttendanceStudent(undefined)} />}
+      {rulesOpen && rules && <RetentionRulesPanel rules={rules} items={items} onClose={() => setRulesOpen(false)} />}
       <ProductGuide open={guideOpen} title="Como usar a Retenção" description="Um guia prático para organizar a rotina, interpretar os sinais e registrar acompanhamentos com consistência." sections={retentionGuide} onClose={() => setGuideOpen(false)} />
     </div>
   );
@@ -141,6 +145,119 @@ function RadarRow({ item, onAction, onFrequency }: { item: RetentionRadarItem; o
       <div className="grid gap-2"><Button variant="secondary" onClick={onFrequency}><CalendarDays className="h-4 w-4" />Ver frequência</Button><Button variant="secondary" onClick={onAction}>{item.last_intervention_id ? 'Atualizar acompanhamento' : 'Registrar ação'}</Button></div>
     </div>
   );
+}
+
+function RetentionRulesPanel({ rules, items, onClose }: { rules: RetentionRules; items: RetentionRadarItem[]; onClose: () => void }) {
+  const examples = selectRuleExamples(items);
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/40" role="dialog" aria-modal="true" aria-label="Como os sinais de retenção são calculados">
+      <div className="h-full w-full max-w-2xl overflow-y-auto bg-slate-50 shadow-2xl">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-200 bg-white px-5 py-4 sm:px-6">
+          <div><p className="text-xs font-bold uppercase tracking-wide text-accent">Leitura transparente</p><h2 className="mt-1 text-xl font-bold text-slate-950">Como os sinais são calculados</h2><p className="mt-1 text-sm text-slate-500">As regras abaixo são aplicadas diretamente aos check-ins da academia.</p></div>
+          <button className="rounded-md p-2 text-slate-500 hover:bg-slate-100" onClick={onClose} aria-label="Fechar"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="space-y-5 p-5 sm:p-6">
+          <Card>
+            <CardHeader><h3 className="font-bold text-slate-950">Períodos comparados hoje</h3></CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-2">
+              <RuleValue label="Período recente" value={`${formatRuleDate(rules.recent_start)} a ${formatRuleDate(rules.recent_end)}`} detail="Últimos 28 dias" />
+              <RuleValue label="Período anterior" value={`${formatRuleDate(rules.previous_start)} a ${formatRuleDate(rules.previous_end)}`} detail="As quatro semanas anteriores" />
+              <RuleValue label="Histórico necessário" value={`Primeira presença até ${formatRuleDate(rules.history_required_before)}`} detail={`${rules.history_days / 7} semanas para comparação`} />
+              <RuleValue label="Rotina mínima" value={`${rules.minimum_total_checkins} presenças no histórico`} detail="Visitas isoladas não viram alerta de retenção" />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><h3 className="font-bold text-slate-950">Quando cada sinal aparece</h3><p className="text-sm text-slate-500">Basta atingir o limite de ausência ou o limite de queda.</p></CardHeader>
+            <CardContent className="space-y-3">
+              <RuleLevel level="attention" inactiveDays={rules.attention_inactive_days} drop={rules.attention_drop_percentage} />
+              <RuleLevel level="at_risk" inactiveDays={rules.at_risk_inactive_days} drop={rules.at_risk_drop_percentage} />
+              <RuleLevel level="critical" inactiveDays={rules.critical_inactive_days} drop={rules.critical_drop_percentage} />
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">A porcentagem de queda só é calculada quando o aluno teve pelo menos <strong>{rules.minimum_previous_checkins} check-ins</strong> nas quatro semanas anteriores.</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><h3 className="font-bold text-slate-950">Como ler os primeiros 30 dias</h3><p className="text-sm text-slate-500">A seção combina a confiança da data de início com o estágio observado da rotina.</p></CardHeader>
+            <CardContent className="space-y-5">
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Confiança da data</p>
+                <div className="space-y-2">
+                  <OnboardingRuleTag info={membershipConfidenceInfo('confirmed')} description="A data foi confirmada pelo box ou recebida de uma integração." />
+                  <OnboardingRuleTag info={membershipConfidenceInfo('probable')} description={`É a primeira presença depois de pelo menos ${rules.history_days / 7} semanas cobertas pela plataforma sem outro check-in. Pode ser um novo aluno ou um retorno após longa ausência.`} />
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Formação da rotina</p>
+                <div className="space-y-2">
+                  <OnboardingRuleTag info={onboardingStatusInfo('no_first_visit')} description="Existe uma data de início confirmada, mas ainda não há presença registrada desde essa data." />
+                  <OnboardingRuleTag info={onboardingStatusInfo('building_habit')} description="Só houve a primeira presença e ainda não se passaram três dias desde o início." />
+                  <OnboardingRuleTag info={onboardingStatusInfo('needs_second_visit')} description="Houve uma primeira presença, já se passaram pelo menos três dias e a segunda ainda não aconteceu." />
+                  <OnboardingRuleTag info={onboardingStatusInfo('on_track')} description={`Há pelo menos duas presenças e o aluno não atingiu o limite atual de ${rules.at_risk_inactive_days} dias sem check-in.`} />
+                  <OnboardingRuleTag info={onboardingStatusInfo('interrupted')} description={`Depois de formar uma rotina com pelo menos duas presenças, o aluno chegou a ${rules.at_risk_inactive_days} dias ou mais sem check-in.`} />
+                </div>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">Datas com pouca cobertura anterior não entram nesta seção. Por isso, a planilha atual do TotalPass ainda não é usada para afirmar que alguém está no primeiro mês.</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><h3 className="font-bold text-slate-950">Exemplos da sua base</h3><p className="text-sm text-slate-500">Exemplos reais, escolhidos automaticamente a partir do radar atual — sem uso de IA.</p></CardHeader>
+            <CardContent>
+              {examples.length === 0 ? <p className="text-sm text-slate-500">Ainda não há exemplos classificados nestas faixas.</p> : <div className="space-y-3">{examples.map((item) => {
+                const info = levelInfo[item.level];
+                return <div key={item.student_id} className="rounded-lg border border-slate-200 bg-white p-4"><div className="flex flex-wrap items-center gap-2"><strong className="text-sm text-slate-950">{item.student_name}</strong><span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${info.className}`}>{info.label}</span></div><p className="mt-2 text-sm leading-6 text-slate-600">{retentionExample(item)}</p></div>;
+              })}</div>}
+            </CardContent>
+          </Card>
+
+          <div className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900"><strong>Importante:</strong> o radar identifica mudanças de frequência. Ele ajuda a priorizar uma conversa, mas não afirma que o aluno irá cancelar.</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RuleValue({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return <div className="rounded-lg bg-slate-50 p-3"><p className="text-xs font-semibold text-slate-500">{label}</p><p className="mt-1 font-bold text-slate-950">{value}</p><p className="mt-1 text-xs text-slate-500">{detail}</p></div>;
+}
+
+function RuleLevel({ level, inactiveDays, drop }: { level: EngagementLevel; inactiveDays: number; drop: number }) {
+  const info = levelInfo[level];
+  return <div className="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between"><span className={`w-fit rounded-full px-2 py-1 text-xs font-semibold ring-1 ${info.className}`}>{info.label}</span><p className="text-sm text-slate-600"><strong>{inactiveDays} dias</strong> sem presença ou queda mínima de <strong>{drop}%</strong></p></div>;
+}
+
+function OnboardingRuleTag({ info, description }: { info: { label: string; className: string }; description: string }) {
+  return <div className="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 sm:flex-row sm:items-start"><span className={`w-fit shrink-0 rounded-full px-2 py-1 text-xs font-semibold ring-1 ${info.className}`}>{info.label}</span><p className="text-sm leading-5 text-slate-600">{description}</p></div>;
+}
+
+function selectRuleExamples(items: RetentionRadarItem[]) {
+  return (['critical', 'at_risk', 'attention'] as EngagementLevel[]).flatMap((level) => {
+    const candidates = items.filter((item) => item.level === level).sort((left, right) => {
+      const score = (item: RetentionRadarItem) => (item.signals.some((signal) => signal.code === 'frequency_drop') ? 10 : 0) + (item.signals.some((signal) => signal.code === 'inactive_days') ? 0 : 5);
+      const difference = score(right) - score(left);
+      if (difference !== 0) return difference;
+      return (right.last_checkin || '').localeCompare(left.last_checkin || '');
+    });
+    return candidates.slice(0, 1);
+  });
+}
+
+function retentionExample(item: RetentionRadarItem) {
+  const details: string[] = [];
+  if (item.drop_percentage !== undefined) {
+    details.push(`fez ${item.recent_checkins} check-ins no período recente, contra ${item.previous_checkins} no anterior — queda de ${formatDecimal(item.drop_percentage)}%`);
+  }
+  if (item.signals.some((signal) => signal.code === 'inactive_days') && item.days_since_checkin !== undefined) {
+    details.push(`está há ${item.days_since_checkin} dias sem registrar presença`);
+  } else if (item.last_checkin) {
+    details.push(`a última presença foi em ${formatRuleDate(item.last_checkin)}`);
+  }
+  return `${details.join('; ')}. Por isso aparece como “${levelInfo[item.level].label}”.`;
+}
+
+function formatRuleDate(value: string) {
+  return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString('pt-BR');
 }
 
 function InterventionModal({ item, team, onClose, onSaved }: { item: RetentionRadarItem; team: TeamMember[]; onClose: () => void; onSaved: () => Promise<void> }) {
@@ -215,10 +332,10 @@ function OnboardingPanel({ items, loading, onReload, onFrequency, onAction }: {
   onAction: (item: OnboardingJourneyItem) => void;
 }) {
   if (loading && items.length === 0) return <LoadingState />;
-  if (items.length === 0) return <Card><CardContent className="p-5"><EmptyState message="Nenhum aluno com início registrado nos últimos 30 dias" /></CardContent></Card>;
+  if (items.length === 0) return <Card><CardContent className="p-5"><EmptyState message="Nenhum início confirmado ou provável nos últimos 30 dias" /></CardContent></Card>;
   return (
     <Card>
-      <CardHeader><h2 className="font-bold text-slate-950">Formação da rotina</h2><p className="text-sm text-slate-500">Acompanha primeira e segunda presenças e os marcos dos primeiros 7, 14 e 30 dias.</p></CardHeader>
+      <CardHeader><h2 className="font-bold text-slate-950">Formação da rotina</h2><p className="text-sm text-slate-500">Inclui datas confirmadas e primeiras presenças com pelo menos oito semanas anteriores de cobertura sem outro check-in.</p></CardHeader>
       <CardContent className="divide-y divide-slate-100 p-0">
         {items.map((item) => <OnboardingRow key={item.student_id} item={item} onReload={onReload} onFrequency={() => onFrequency(item)} onAction={() => onAction(item)} />)}
       </CardContent>
@@ -244,19 +361,26 @@ function OnboardingRow({ item, onReload, onFrequency, onAction }: {
     finally { setSaving(false); }
   }
   const status = onboardingStatusInfo(item.status);
+  const confidence = membershipConfidenceInfo(item.membership_start_confidence);
   return (
     <div className="grid gap-4 p-4 lg:grid-cols-[minmax(190px,1fr)_minmax(250px,1.4fr)_minmax(230px,1fr)_auto] lg:items-center lg:px-5">
-      <div><div className="flex flex-wrap items-center gap-2"><p className="font-bold text-slate-950">{item.student_name}</p><span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${status.className}`}>{status.label}</span></div><p className="mt-1 text-xs text-slate-500">Dia {item.day} · {item.source === 'wellhub' ? 'Wellhub' : 'TotalPass'}</p></div>
+      <div><div className="flex flex-wrap items-center gap-2"><p className="font-bold text-slate-950">{item.student_name}</p><span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${status.className}`}>{status.label}</span><span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${confidence.className}`}>{confidence.label}</span></div><p className="mt-1 text-xs text-slate-500">Dia {item.day} · {item.source === 'wellhub' ? 'Wellhub' : 'TotalPass'}</p></div>
       <div><p className="text-sm text-slate-600">{item.status_message}</p><p className="mt-1 text-xs text-slate-500"><strong className="text-slate-700">{item.recommendation.title}:</strong> {item.recommendation.message}</p></div>
       <div>
         <div className="grid grid-cols-3 gap-2 text-center"><SmallMetric label="7 dias" value={item.checkins_first_7_days} /><SmallMetric label="14 dias" value={item.checkins_first_14_days} /><SmallMetric label="30 dias" value={item.checkins_first_30_days} /></div>
-        <div className="mt-2 flex items-end gap-2"><label className="flex-1 text-xs font-semibold text-slate-500">Início<Input className="mt-1" type="date" value={startedAt} max={todayDate()} onChange={(event) => setStartedAt(event.target.value)} /></label><Button variant="ghost" disabled={saving || startedAt === item.membership_started_at} onClick={() => void saveStart()}>{saving ? 'Salvando' : 'Confirmar'}</Button></div>
-        <p className="mt-1 text-[11px] text-slate-400">{item.membership_started_source === 'first_checkin_inferred' ? 'Data inferida pela primeira presença; confirme quando souber a data real.' : 'Data confirmada pela operação.'}</p>
+        <div className="mt-2 flex items-end gap-2"><label className="flex-1 text-xs font-semibold text-slate-500">Início<Input className="mt-1" type="date" value={startedAt} max={todayDate()} onChange={(event) => setStartedAt(event.target.value)} /></label><Button variant="ghost" disabled={saving || (startedAt === item.membership_started_at && item.membership_start_confidence === 'confirmed')} onClick={() => void saveStart()}>{saving ? 'Salvando' : 'Confirmar data'}</Button></div>
+        <p className="mt-1 text-[11px] text-slate-400">{item.membership_start_confidence === 'probable' ? `Início provável: havia ${item.observation_days_before_start} dias cobertos sem presença anterior. Confirme a data se souber.` : 'Data confirmada pela operação.'}</p>
         {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
       </div>
       <div className="grid gap-2"><Button variant="secondary" onClick={onFrequency}><CalendarDays className="h-4 w-4" />Ver frequência</Button><Button variant="secondary" onClick={onAction}>Registrar ação</Button></div>
     </div>
   );
+}
+
+function membershipConfidenceInfo(confidence: OnboardingJourneyItem['membership_start_confidence']) {
+  return confidence === 'confirmed'
+    ? { label: 'Início confirmado', className: 'bg-emerald-50 text-emerald-700 ring-emerald-200' }
+    : { label: 'Início provável', className: 'bg-violet-50 text-violet-700 ring-violet-200' };
 }
 
 function onboardingStatusInfo(status: OnboardingJourneyItem['status']) {

@@ -48,6 +48,7 @@ import type {
   BillingSubscription,
   RetentionIntervention,
   RetentionRadarItem,
+  RetentionRules,
   RetentionSummary,
   OnboardingJourneyItem,
 } from './types';
@@ -85,6 +86,7 @@ export const api = {
   atRiskStudents: () => apiRequest<Student[]>('/api/v1/dashboard/at-risk-students'),
   pendingRewards: () => apiRequest<RewardDelivery[]>('/api/v1/dashboard/pending-rewards'),
   retentionRadar: () => apiRequest<RetentionRadarItem[]>('/api/v1/retention/radar'),
+  retentionRules: () => apiRequest<RetentionRules>('/api/v1/retention/rules'),
   retentionSummary: (startDate?: string, endDate?: string) => {
     const params = new URLSearchParams();
     if (startDate) params.set('start_date', startDate);

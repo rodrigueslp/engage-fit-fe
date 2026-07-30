@@ -194,6 +194,7 @@ export type RetentionRadarItem = {
   first_checkin?: string;
   last_checkin?: string;
   days_since_checkin?: number;
+  total_checkins: number;
   recent_checkins: number;
   previous_checkins: number;
   recent_weekly_average: number;
@@ -220,6 +221,23 @@ export type RetentionRadarItem = {
     title: string;
     message: string;
   };
+};
+
+export type RetentionRules = {
+  recent_start: string;
+  recent_end: string;
+  previous_start: string;
+  previous_end: string;
+  history_required_before: string;
+  history_days: number;
+  minimum_total_checkins: number;
+  minimum_previous_checkins: number;
+  attention_inactive_days: number;
+  at_risk_inactive_days: number;
+  critical_inactive_days: number;
+  attention_drop_percentage: number;
+  at_risk_drop_percentage: number;
+  critical_drop_percentage: number;
 };
 
 export type RetentionReason = 'travel' | 'schedule' | 'financial' | 'motivation' | 'service' | 'health' | 'moved' | 'unknown' | 'other';
@@ -266,6 +284,8 @@ export type OnboardingJourneyItem = {
   contact_status: Student['contact_status'];
   membership_started_at: string;
   membership_started_source: 'manual' | 'integration' | 'first_checkin_inferred';
+  membership_start_confidence: 'confirmed' | 'probable';
+  observation_days_before_start: number;
   day: number;
   first_checkin?: string;
   second_checkin?: string;
