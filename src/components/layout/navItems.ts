@@ -15,6 +15,7 @@ export const navItems: NavItem[] = [
   { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, group: 'Engajamento' },
   { key: 'automation', label: 'Automação', icon: RefreshCw, group: 'Engajamento' },
   { key: 'reports', label: 'Relatórios', icon: Dumbbell, group: 'Gestão' },
+  { key: 'team', label: 'Equipe', icon: Users, group: 'Gestão' },
   { key: 'settings', label: 'Configurações', icon: Settings, group: 'Gestão' },
   { key: 'billing', label: 'Plano e cobranças', icon: CreditCard, group: 'Gestão' },
 ];
@@ -27,6 +28,7 @@ export const adminNavItems: NavItem[] = [
 export function navItemsForRole(role: string | undefined, capabilities: Capabilities) {
   const items = role === 'PLATFORM_ADMIN' ? adminNavItems : navItems;
   return items.filter((item) => {
+    if (role === 'COACH' && !['dashboard', 'retention', 'students', 'checkins'].includes(item.key)) return false;
     if (item.key === 'whatsapp') return capabilities.whatsapp;
     if (item.key === 'automation') return capabilities.automation;
     if (item.key === 'email') return capabilities.email;

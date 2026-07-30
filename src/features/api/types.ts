@@ -21,6 +21,15 @@ export type CurrentUser = {
   role: string;
 };
 
+export type TeamMember = {
+  id: string;
+  name: string;
+  email: string;
+  role: 'OWNER' | 'COACH';
+  active: boolean;
+  created_at: string;
+};
+
 export type Box = {
   id: string;
   name: string;
@@ -159,6 +168,8 @@ export type Student = {
   contact_status: 'unknown' | 'opted_in' | 'opted_out';
   contact_status_updated_at?: string;
   contact_status_source?: string;
+  membership_started_at?: string;
+  membership_started_source?: 'manual' | 'integration' | 'first_checkin_inferred';
   anonymized_at?: string;
 };
 
@@ -202,20 +213,70 @@ export type RetentionRadarItem = {
   last_intervention_outcome?: RetentionIntervention['outcome'];
   last_intervention_planned_for?: string;
   last_intervention_created_at?: string;
+  last_intervention_assignee_id?: string;
+  last_intervention_assignee_name?: string;
+  recommendation: {
+    code: string;
+    title: string;
+    message: string;
+  };
 };
+
+export type RetentionReason = 'travel' | 'schedule' | 'financial' | 'motivation' | 'service' | 'health' | 'moved' | 'unknown' | 'other';
 
 export type RetentionIntervention = {
   id: string;
   student_id: string;
   created_by_user_id: string;
+  assigned_to_user_id?: string;
+  assigned_to_user_name?: string;
   channel: 'whatsapp' | 'phone' | 'in_person' | 'other';
   status: 'planned' | 'completed' | 'cancelled';
   outcome?: 'contacted' | 'no_response' | 'follow_up' | 'paused' | 'not_interested' | 'other';
+  reason_code?: RetentionReason;
   planned_for?: string;
   completed_at?: string;
   notes: string;
   created_at: string;
   updated_at: string;
+};
+
+export type RetentionSummary = {
+  period_start: string;
+  period_end: string;
+  needs_action: number;
+  waiting_return: number;
+  follow_up_due: number;
+  recovered: number;
+  completed_interventions: number;
+  return_within_3_days: number;
+  return_within_7_days: number;
+  return_within_14_days: number;
+  median_days_to_return: number | null;
+  reasons: { code: string; count: number }[];
+  channels: { code: string; count: number }[];
+  outcomes: { code: string; count: number }[];
+};
+
+export type OnboardingJourneyItem = {
+  student_id: string;
+  student_name: string;
+  student_phone: string;
+  source: Source;
+  contact_status: Student['contact_status'];
+  membership_started_at: string;
+  membership_started_source: 'manual' | 'integration' | 'first_checkin_inferred';
+  day: number;
+  first_checkin?: string;
+  second_checkin?: string;
+  last_checkin?: string;
+  days_since_checkin?: number;
+  checkins_first_7_days: number;
+  checkins_first_14_days: number;
+  checkins_first_30_days: number;
+  status: 'no_first_visit' | 'needs_second_visit' | 'interrupted' | 'building_habit' | 'on_track';
+  status_message: string;
+  recommendation: RetentionRadarItem['recommendation'];
 };
 
 export type Campaign = {
@@ -306,6 +367,17 @@ export type ImportHistory = {
   students?: number;
   checkins?: number;
   imported_at: string;
+};
+
+export type CheckinIngestionSource = {
+  id: string;
+  name: string;
+  source: Source;
+  enabled: boolean;
+  last_ingested_at?: string;
+  created_at: string;
+  updated_at: string;
+  token?: string;
 };
 
 export type WhatsappSettings = {

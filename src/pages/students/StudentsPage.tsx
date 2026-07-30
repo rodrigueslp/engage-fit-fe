@@ -11,7 +11,7 @@ import type { Student } from '../../features/api/types';
 
 const pageSize = 10;
 
-export function StudentsPage() {
+export function StudentsPage({ canManagePrivacy = true }: { canManagePrivacy?: boolean }) {
   const [students, setStudents] = useState<Student[]>([]);
   const [search, setSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
@@ -118,8 +118,8 @@ export function StudentsPage() {
               <div key={student.id} className="space-y-3 p-4">
                 <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-bold text-slate-950">{student.name}</p><p className="truncate text-sm text-slate-500">{student.email || student.phone || 'Sem contato cadastrado'}</p></div><StatusBadge value={student.source} label={student.source} /></div>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  <label className="text-xs font-semibold text-slate-500">Preferência de contato<select className="mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-800" value={student.contact_status || 'unknown'} disabled={processingId === student.id || Boolean(student.anonymized_at)} onChange={(event) => void updateContact(student, event.target.value as Student['contact_status'])}><option value="unknown">Não informado</option><option value="opted_in">Autorizado</option><option value="opted_out">Não contatar</option></select></label>
-                  <StudentPrivacyActions student={student} processing={processingId === student.id} onExport={exportData} onAnonymize={anonymize} />
+                  <label className="text-xs font-semibold text-slate-500">Preferência de contato<select className="mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-800" value={student.contact_status || 'unknown'} disabled={!canManagePrivacy || processingId === student.id || Boolean(student.anonymized_at)} onChange={(event) => void updateContact(student, event.target.value as Student['contact_status'])}><option value="unknown">Não informado</option><option value="opted_in">Autorizado</option><option value="opted_out">Não contatar</option></select></label>
+                  {canManagePrivacy && <StudentPrivacyActions student={student} processing={processingId === student.id} onExport={exportData} onAnonymize={anonymize} />}
                 </div>
               </div>
             ))}
@@ -133,7 +133,7 @@ export function StudentsPage() {
                   <th>Telefone</th>
                   <th>Origem</th>
                   <th>Contato</th>
-                  <th className="text-right">Privacidade</th>
+                  {canManagePrivacy && <th className="text-right">Privacidade</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -147,7 +147,7 @@ export function StudentsPage() {
                       <select
                         className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm"
                         value={student.contact_status || 'unknown'}
-                        disabled={processingId === student.id || Boolean(student.anonymized_at)}
+                        disabled={!canManagePrivacy || processingId === student.id || Boolean(student.anonymized_at)}
                         onChange={(event) => void updateContact(student, event.target.value as Student['contact_status'])}
                       >
                         <option value="unknown">Não informado</option>
@@ -155,9 +155,9 @@ export function StudentsPage() {
                         <option value="opted_out">Não contatar</option>
                       </select>
                     </td>
-                    <td>
+                    {canManagePrivacy && <td>
                       <div className="flex justify-end"><StudentPrivacyActions compact student={student} processing={processingId === student.id} onExport={exportData} onAnonymize={anonymize} /></div>
-                    </td>
+                    </td>}
                   </tr>
                 ))}
               </tbody>

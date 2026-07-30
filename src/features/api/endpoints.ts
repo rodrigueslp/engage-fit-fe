@@ -1,5 +1,7 @@
 import { apiDownload, apiRequest } from './client';
 import type {
+  Source,
+  TeamMember,
   Box,
   Campaign,
   CampaignGoal,
@@ -15,6 +17,7 @@ import type {
   AutomationRun,
   AutomationSchedule,
   ImportHistory,
+  CheckinIngestionSource,
   LoginResponse,
   MessageCampaign,
   MessageCampaignPreview,
@@ -45,6 +48,8 @@ import type {
   BillingSubscription,
   RetentionIntervention,
   RetentionRadarItem,
+  RetentionSummary,
+  OnboardingJourneyItem,
 } from './types';
 
 export type MessagingPolicyPayload = Omit<MessagingPolicy, 'id' | 'scope' | 'box_id' | 'updated_at'> & { reason: string };
@@ -61,6 +66,13 @@ export const api = {
   logout: () => apiRequest<void>('/api/v1/auth/logout', { method: 'POST' }),
   changePassword: (payload: { current_password: string; new_password: string }) =>
     apiRequest<void>('/api/v1/auth/password', { method: 'PUT', body: JSON.stringify(payload) }),
+  teamMembers: () => apiRequest<TeamMember[]>('/api/v1/team/members'),
+  createCoach: (payload: { name: string; email: string; password: string }) =>
+    apiRequest<TeamMember>('/api/v1/team/coaches', { method: 'POST', body: JSON.stringify(payload) }),
+  updateCoach: (id: string, payload: { name: string; active: boolean }) =>
+    apiRequest<TeamMember>(`/api/v1/team/coaches/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  resetCoachPassword: (id: string, password: string) =>
+    apiRequest<void>(`/api/v1/team/coaches/${id}/password`, { method: 'PUT', body: JSON.stringify({ password }) }),
   box: () => apiRequest<Box>('/api/v1/box'),
   updateBox: (payload: { name: string; risk_inactive_days: number; risk_message_cooldown_days: number }) =>
     apiRequest<Box>('/api/v1/box', {
@@ -73,9 +85,22 @@ export const api = {
   atRiskStudents: () => apiRequest<Student[]>('/api/v1/dashboard/at-risk-students'),
   pendingRewards: () => apiRequest<RewardDelivery[]>('/api/v1/dashboard/pending-rewards'),
   retentionRadar: () => apiRequest<RetentionRadarItem[]>('/api/v1/retention/radar'),
+  retentionSummary: (startDate?: string, endDate?: string) => {
+    const params = new URLSearchParams();
+    if (startDate) params.set('start_date', startDate);
+    if (endDate) params.set('end_date', endDate);
+    const query = params.toString();
+    return apiRequest<RetentionSummary>(`/api/v1/retention/summary${query ? `?${query}` : ''}`);
+  },
+  onboardingJourney: () => apiRequest<OnboardingJourneyItem[]>('/api/v1/retention/onboarding'),
+  updateMembershipStart: (studentId: string, startedAt: string) =>
+    apiRequest<void>(`/api/v1/students/${studentId}/membership-start`, {
+      method: 'PATCH',
+      body: JSON.stringify({ started_at: startedAt }),
+    }),
   retentionInterventions: (studentId: string) =>
     apiRequest<RetentionIntervention[]>(`/api/v1/students/${studentId}/retention-interventions`),
-  createRetentionIntervention: (studentId: string, payload: Pick<RetentionIntervention, 'channel' | 'status' | 'outcome' | 'notes'> & { planned_for?: string }) =>
+  createRetentionIntervention: (studentId: string, payload: Pick<RetentionIntervention, 'channel' | 'status' | 'outcome' | 'reason_code' | 'assigned_to_user_id' | 'notes'> & { planned_for?: string }) =>
     apiRequest<RetentionIntervention>(`/api/v1/students/${studentId}/retention-interventions`, {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -109,6 +134,13 @@ export const api = {
       method: 'POST',
       body: formData,
     }),
+  checkinIngestionSources: () => apiRequest<CheckinIngestionSource[]>('/api/v1/checkin-ingestion/sources'),
+  createCheckinIngestionSource: (payload: { name: string; source: Source }) =>
+    apiRequest<CheckinIngestionSource>('/api/v1/checkin-ingestion/sources', { method: 'POST', body: JSON.stringify(payload) }),
+  updateCheckinIngestionSource: (id: string, payload: { name: string; enabled: boolean }) =>
+    apiRequest<CheckinIngestionSource>(`/api/v1/checkin-ingestion/sources/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  rotateCheckinIngestionToken: (id: string) =>
+    apiRequest<CheckinIngestionSource>(`/api/v1/checkin-ingestion/sources/${id}/rotate-token`, { method: 'POST' }),
   campaigns: () => apiRequest<Campaign[]>('/api/v1/campaigns'),
   createCampaign: (payload: Partial<Campaign>) =>
     apiRequest<Campaign>('/api/v1/campaigns', {
