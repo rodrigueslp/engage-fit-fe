@@ -1,4 +1,4 @@
-import { Activity, BarChart3, CreditCard, Dumbbell, Gift, HeartPulse, MessageCircle, RefreshCw, Settings, ShieldCheck, Target, Upload, Users } from 'lucide-react';
+import { Activity, BarChart3, CreditCard, Dumbbell, Gift, HeartPulse, MessageCircle, QrCode, RefreshCw, Settings, ShieldCheck, Target, Upload, Users } from 'lucide-react';
 import type { PageKey } from '../../app/App';
 import type { Capabilities } from '../../features/api/types';
 
@@ -10,6 +10,7 @@ export const navItems: NavItem[] = [
   { key: 'campaigns', label: 'Campanhas', icon: Target, group: 'Operação' },
   { key: 'rewards', label: 'Brindes', icon: Gift, group: 'Operação' },
   { key: 'students', label: 'Alunos', icon: Users, group: 'Operação' },
+  { key: 'activation', label: 'Ativação WhatsApp', icon: QrCode, group: 'Engajamento' },
   { key: 'checkins', label: 'Check-ins', icon: Activity, group: 'Operação' },
   { key: 'imports', label: 'Importações', icon: Upload, group: 'Operação' },
   { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, group: 'Engajamento' },
@@ -29,6 +30,7 @@ export function navItemsForRole(role: string | undefined, capabilities: Capabili
   const items = role === 'PLATFORM_ADMIN' ? adminNavItems : navItems;
   return items.filter((item) => {
     if (role === 'COACH' && !['dashboard', 'retention', 'students', 'checkins'].includes(item.key)) return false;
+    if (item.key === 'activation') return role === 'OWNER' && capabilities.whatsapp;
     if (item.key === 'whatsapp') return capabilities.whatsapp;
     if (item.key === 'automation') return capabilities.automation;
     if (item.key === 'email') return capabilities.email;

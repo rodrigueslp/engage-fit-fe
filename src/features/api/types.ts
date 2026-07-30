@@ -181,6 +181,46 @@ export type StudentCheckin = {
   source: Source;
 };
 
+export type ContactActivationConfig = {
+  box_name: string;
+  activation_code: string;
+  sender_phone: string;
+  consent_version: string;
+  consent_text: string;
+};
+
+export type ContactActivationStart = {
+  whatsapp_url: string;
+  expires_at: string;
+};
+
+export type ContactActivationSummary = {
+  total_students: number;
+  with_phone: number;
+  opted_in: number;
+  opted_out: number;
+  pending_review: number;
+  awaiting_message: number;
+  activation_code: string;
+  sender_phone: string;
+  whatsapp_ready: boolean;
+};
+
+export type ContactActivation = {
+  id: string;
+  student_id?: string;
+  student_name?: string;
+  claimed_name: string;
+  source: Source;
+  recent_checkin_date?: string;
+  phone?: string;
+  status: 'awaiting_message' | 'confirmed' | 'needs_review' | 'expired' | 'cancelled';
+  consented_at?: string;
+  expires_at: string;
+  resolved_at?: string;
+  created_at: string;
+};
+
 export type EngagementLevel = 'history_insufficient' | 'healthy' | 'attention' | 'at_risk' | 'critical' | 'recovered';
 export type RetentionWorkflowStatus = 'none' | 'needs_action' | 'waiting_return' | 'follow_up_due' | 'paused' | 'closed' | 'recovered';
 

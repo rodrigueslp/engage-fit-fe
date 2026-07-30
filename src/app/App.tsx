@@ -22,10 +22,12 @@ import { BillingManagementPage } from '../pages/admin/BillingManagementPage';
 import { BillingPage } from '../pages/billing/BillingPage';
 import { RetentionPage } from '../pages/retention/RetentionPage';
 import { TeamPage } from '../pages/team/TeamPage';
+import { ContactActivationPage } from '../pages/activation/ContactActivationPage';
+import { PublicContactActivationPage } from '../pages/activation/PublicContactActivationPage';
 
-export type PageKey = 'showcase' | 'dashboard' | 'retention' | 'campaigns' | 'rewards' | 'students' | 'checkins' | 'imports' | 'whatsapp' | 'workouts' | 'email' | 'automation' | 'reports' | 'team' | 'settings' | 'billing' | 'admin-messaging' | 'admin-billing';
+export type PageKey = 'showcase' | 'dashboard' | 'retention' | 'campaigns' | 'rewards' | 'students' | 'activation' | 'checkins' | 'imports' | 'whatsapp' | 'workouts' | 'email' | 'automation' | 'reports' | 'team' | 'settings' | 'billing' | 'admin-messaging' | 'admin-billing';
 
-const pageKeys: PageKey[] = ['showcase', 'dashboard', 'retention', 'campaigns', 'rewards', 'students', 'checkins', 'imports', 'whatsapp', 'workouts', 'email', 'automation', 'reports', 'team', 'settings', 'billing', 'admin-messaging', 'admin-billing'];
+const pageKeys: PageKey[] = ['showcase', 'dashboard', 'retention', 'campaigns', 'rewards', 'students', 'activation', 'checkins', 'imports', 'whatsapp', 'workouts', 'email', 'automation', 'reports', 'team', 'settings', 'billing', 'admin-messaging', 'admin-billing'];
 const coachPages: PageKey[] = ['dashboard', 'retention', 'students', 'checkins'];
 
 function pageFromHash(): PageKey {
@@ -33,7 +35,13 @@ function pageFromHash(): PageKey {
   return pageKeys.includes(hashPage as PageKey) ? (hashPage as PageKey) : 'dashboard';
 }
 
+function activationCodeFromHash() {
+  const match = window.location.hash.match(/^#\/?activate\/([0-9a-f-]{36})$/i);
+  return match?.[1] || '';
+}
+
 export function App() {
+  const activationCode = activationCodeFromHash();
   const [page, setPage] = useState<PageKey>(pageFromHash);
   const [user, setUser] = useState<CurrentUser>();
   const [box, setBox] = useState<Box>();
@@ -61,11 +69,16 @@ export function App() {
   }
 
   useEffect(() => {
+    if (activationCode) {
+      setCheckingSession(false);
+      return;
+    }
     loadSession();
   }, []);
 
   useEffect(() => {
     const disabled = (page === 'whatsapp' && !capabilities.whatsapp)
+      || (page === 'activation' && !capabilities.whatsapp)
       || (page === 'automation' && !capabilities.automation)
       || (page === 'email' && !capabilities.email)
       || (page === 'workouts' && !capabilities.workouts)
@@ -96,6 +109,10 @@ export function App() {
     return <ShowcasePage />;
   }
 
+  if (activationCode) {
+    return <PublicContactActivationPage code={activationCode} />;
+  }
+
   if (checkingSession) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
@@ -117,6 +134,7 @@ export function App() {
   function navigate(nextPage: PageKey) {
     if (user?.role === 'COACH' && !coachPages.includes(nextPage)) nextPage = 'retention';
     if (nextPage === 'whatsapp' && !capabilities.whatsapp) nextPage = 'dashboard';
+    if (nextPage === 'activation' && !capabilities.whatsapp) nextPage = 'dashboard';
     if (nextPage === 'automation' && !capabilities.automation) nextPage = 'dashboard';
     if (nextPage === 'email' && !capabilities.email) nextPage = 'dashboard';
     if (nextPage === 'workouts' && !capabilities.workouts) nextPage = 'dashboard';
@@ -134,6 +152,7 @@ export function App() {
       {renderedPage === 'campaigns' && <CampaignsPage />}
       {renderedPage === 'rewards' && <RewardsPage />}
       {renderedPage === 'students' && <StudentsPage canManagePrivacy={user.role === 'OWNER'} />}
+      {renderedPage === 'activation' && user.role === 'OWNER' && <ContactActivationPage />}
       {renderedPage === 'checkins' && <CheckinsPage />}
       {renderedPage === 'imports' && <ImportsPage />}
       {renderedPage === 'whatsapp' && capabilities.whatsapp && <WhatsappPage />}

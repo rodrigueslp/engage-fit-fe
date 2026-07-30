@@ -51,6 +51,10 @@ import type {
   RetentionRules,
   RetentionSummary,
   OnboardingJourneyItem,
+  ContactActivation,
+  ContactActivationConfig,
+  ContactActivationStart,
+  ContactActivationSummary,
 } from './types';
 
 export type MessagingPolicyPayload = Omit<MessagingPolicy, 'id' | 'scope' | 'box_id' | 'updated_at'> & { reason: string };
@@ -113,6 +117,20 @@ export const api = {
       method: 'PATCH',
     }),
   students: () => apiRequest<Student[]>('/api/v1/students'),
+  publicContactActivation: (code: string) =>
+    apiRequest<ContactActivationConfig>(`/api/v1/public/contact-activation/${encodeURIComponent(code)}`, { auth: false }),
+  startPublicContactActivation: (code: string, payload: { name: string; source: Source; recent_checkin_date: string; consent_accepted: boolean }) =>
+    apiRequest<ContactActivationStart>(`/api/v1/public/contact-activation/${encodeURIComponent(code)}`, {
+      method: 'POST', auth: false, body: JSON.stringify(payload),
+    }),
+  contactActivationSummary: () => apiRequest<ContactActivationSummary>('/api/v1/contact-activations/summary'),
+  contactActivations: () => apiRequest<ContactActivation[]>('/api/v1/contact-activations'),
+  startStudentContactActivation: (studentId: string) =>
+    apiRequest<ContactActivationStart>(`/api/v1/students/${studentId}/contact-activation`, { method: 'POST' }),
+  resolveContactActivation: (activationId: string, studentId: string) =>
+    apiRequest<ContactActivation>(`/api/v1/contact-activations/${activationId}/resolve`, {
+      method: 'POST', body: JSON.stringify({ student_id: studentId }),
+    }),
   studentCheckins: (studentId: string) => apiRequest<StudentCheckin[]>(`/api/v1/students/${studentId}/checkins`),
   updateStudentRiskStatus: (studentId: string, riskStatus: NonNullable<Student['risk_status']>) =>
     apiRequest<void>(`/api/v1/students/${studentId}/risk-status`, {
