@@ -119,7 +119,7 @@ export const api = {
   students: () => apiRequest<Student[]>('/api/v1/students'),
   publicContactActivation: (code: string) =>
     apiRequest<ContactActivationConfig>(`/api/v1/public/contact-activation/${encodeURIComponent(code)}`, { auth: false }),
-  startPublicContactActivation: (code: string, payload: { name: string; source: Source; recent_checkin_date: string; consent_accepted: boolean }) =>
+  startPublicContactActivation: (code: string, payload: { name: string; source: Source; recent_checkin_date?: string; is_new_student: boolean; consent_accepted: boolean }) =>
     apiRequest<ContactActivationStart>(`/api/v1/public/contact-activation/${encodeURIComponent(code)}`, {
       method: 'POST', auth: false, body: JSON.stringify(payload),
     }),

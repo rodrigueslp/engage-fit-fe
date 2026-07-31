@@ -78,7 +78,7 @@ export function ContactActivationPage() {
         <>
           {!summary.whatsapp_ready && <InlineNotice tone="warning">A conexão Twilio precisa estar ativa e usar um número de telefone como remetente antes de publicar o QR Code.</InlineNotice>}
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <Metric label="Alunos importados" value={summary.total_students} icon={Users} />
+            <Metric label="Alunos cadastrados" value={summary.total_students} icon={Users} />
             <Metric label="Com telefone" value={summary.with_phone} icon={MessageCircle} />
             <Metric label="Autorizados" value={summary.opted_in} icon={UserCheck} />
             <Metric label="Aguardando envio" value={summary.awaiting_message} icon={Link2} />
@@ -87,12 +87,12 @@ export function ContactActivationPage() {
 
           <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
             <Card>
-              <CardHeader><h2 className="font-bold text-slate-950">QR público da academia</h2><p className="mt-1 text-sm text-slate-500">Use em placas, TV, balcão ou redes sociais. A lista de alunos nunca é exibida.</p></CardHeader>
+              <CardHeader><h2 className="font-bold text-slate-950">QR de entrada da academia</h2><p className="mt-1 text-sm text-slate-500">Novos alunos se cadastram no primeiro treino; alunos atuais ativam o WhatsApp. Use na recepção, TV ou balcão.</p></CardHeader>
               <CardContent>
                 {summary.whatsapp_ready && publicURL ? <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
                   <div className="rounded-xl border border-slate-200 bg-white p-3"><QRCodeSVG value={publicURL} size={184} level="M" /></div>
                   <div className="min-w-0 flex-1 space-y-3">
-                    <p className="text-sm font-semibold text-slate-800">Acompanhe seus check-ins, metas e brindes pelo WhatsApp.</p>
+                    <p className="text-sm font-semibold text-slate-800">Primeiro treino? Escaneie para entrar na academia e ativar seu acompanhamento.</p>
                     <code className="block break-all rounded-lg bg-slate-50 p-3 text-xs text-slate-600">{publicURL}</code>
                     <Button variant="secondary" onClick={() => void navigator.clipboard.writeText(publicURL)}><Copy className="h-4 w-4" />Copiar link</Button>
                   </div>
@@ -142,7 +142,7 @@ export function ContactActivationPage() {
             <CardContent className="space-y-2">
               {recent.length === 0 ? <EmptyState message="Nenhuma ativação iniciada." /> : recent.map((item) => (
                 <div key={item.id} className="flex flex-col gap-2 rounded-lg border border-slate-100 px-3 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-                  <div><p className="font-semibold text-slate-900">{item.student_name || item.claimed_name}</p><p className="text-xs text-slate-500">{item.source === 'wellhub' ? 'Wellhub' : 'TotalPass'} · {new Date(item.created_at).toLocaleString('pt-BR')}</p></div>
+                  <div><p className="font-semibold text-slate-900">{item.student_name || item.claimed_name}</p><p className="text-xs text-slate-500">{item.is_new_student ? 'Novo cadastro · ' : ''}{item.source === 'wellhub' ? 'Wellhub' : 'TotalPass'} · {new Date(item.created_at).toLocaleString('pt-BR')}</p></div>
                   <span className={`inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${item.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : item.status === 'cancelled' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'}`}>
                     {item.status === 'confirmed' && <CheckCircle2 className="h-3.5 w-3.5" />}{statusLabel(item.status)}
                   </span>

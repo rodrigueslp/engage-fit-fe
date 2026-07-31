@@ -169,7 +169,7 @@ export type Student = {
   contact_status_updated_at?: string;
   contact_status_source?: string;
   membership_started_at?: string;
-  membership_started_source?: 'manual' | 'integration' | 'first_checkin_inferred';
+  membership_started_source?: 'manual' | 'integration' | 'first_checkin_inferred' | 'self_registration';
   anonymized_at?: string;
 };
 
@@ -213,6 +213,7 @@ export type ContactActivation = {
   claimed_name: string;
   source: Source;
   recent_checkin_date?: string;
+  is_new_student: boolean;
   phone?: string;
   status: 'awaiting_message' | 'confirmed' | 'needs_review' | 'expired' | 'cancelled';
   consented_at?: string;

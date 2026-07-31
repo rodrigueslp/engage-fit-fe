@@ -9,6 +9,7 @@ import { ErrorState, LoadingState } from '../../components/common/State';
 export function PublicContactActivationPage({ code }: { code: string }) {
   const [config, setConfig] = useState<ContactActivationConfig>();
   const [result, setResult] = useState<ContactActivationStart>();
+  const [isNewStudent, setIsNewStudent] = useState(true);
   const [name, setName] = useState('');
   const [source, setSource] = useState<Source>('wellhub');
   const [checkinDate, setCheckinDate] = useState('');
@@ -30,7 +31,8 @@ export function PublicContactActivationPage({ code }: { code: string }) {
     setError('');
     try {
       const activation = await api.startPublicContactActivation(code, {
-        name: name.trim(), source, recent_checkin_date: checkinDate, consent_accepted: accepted,
+        name: name.trim(), source, ...(isNewStudent ? {} : { recent_checkin_date: checkinDate }),
+        is_new_student: isNewStudent, consent_accepted: accepted,
       });
       setResult(activation);
     } catch (err) {
@@ -55,7 +57,7 @@ export function PublicContactActivationPage({ code }: { code: string }) {
           </div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-700">EngageFit para</p>
           <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">{config?.box_name || 'Ativação no WhatsApp'}</h1>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">Acompanhe seus check-ins, metas e brindes diretamente pelo WhatsApp.</p>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">Entre para a academia no EngageFit e acompanhe seus check-ins, metas e brindes pelo WhatsApp.</p>
         </div>
 
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
@@ -68,8 +70,8 @@ export function PublicContactActivationPage({ code }: { code: string }) {
                 <CheckCircle2 className="h-9 w-9" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-950">Falta só confirmar no WhatsApp</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-600">Toque no botão abaixo e envie a mensagem que já está pronta. O telefone só será vinculado depois desse envio.</p>
+                <h2 className="text-xl font-bold text-slate-950">{isNewStudent ? 'Falta só confirmar seu cadastro' : 'Falta só confirmar no WhatsApp'}</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Toque no botão abaixo e envie a mensagem que já está pronta. {isNewStudent ? 'Seu cadastro será criado' : 'O telefone só será vinculado'} depois desse envio.</p>
               </div>
               <a className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 font-bold text-white shadow-sm hover:bg-[#1fb85a]" href={result.whatsapp_url}>
                 <MessageCircle className="h-5 w-5" />Confirmar pelo WhatsApp
@@ -80,9 +82,24 @@ export function PublicContactActivationPage({ code }: { code: string }) {
           ) : config ? (
             <form className="space-y-5" onSubmit={submit}>
               <div>
-                <h2 className="text-lg font-bold text-slate-950">Encontre seu histórico</h2>
-                <p className="mt-1 text-sm text-slate-500">Use os mesmos dados que aparecem na plataforma de benefícios.</p>
+                <h2 className="text-lg font-bold text-slate-950">Vamos começar</h2>
+                <p className="mt-1 text-sm text-slate-500">Leva menos de um minuto.</p>
               </div>
+              <fieldset>
+                <legend className="text-sm font-semibold text-slate-700">Você já treinou nesta academia?</legend>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <label className={`cursor-pointer rounded-xl border p-4 transition ${isNewStudent ? 'border-orange-500 bg-orange-50 shadow-sm' : 'border-slate-200 hover:border-slate-300'}`}>
+                    <input className="sr-only" type="radio" name="student-kind" checked={isNewStudent} onChange={() => { setIsNewStudent(true); setCheckinDate(''); }} />
+                    <span className="block text-sm font-bold text-slate-900">É meu primeiro treino</span>
+                    <span className="mt-1 block text-xs leading-5 text-slate-500">Crie meu cadastro agora</span>
+                  </label>
+                  <label className={`cursor-pointer rounded-xl border p-4 transition ${!isNewStudent ? 'border-orange-500 bg-orange-50 shadow-sm' : 'border-slate-200 hover:border-slate-300'}`}>
+                    <input className="sr-only" type="radio" name="student-kind" checked={!isNewStudent} onChange={() => setIsNewStudent(false)} />
+                    <span className="block text-sm font-bold text-slate-900">Já treinei aqui</span>
+                    <span className="mt-1 block text-xs leading-5 text-slate-500">Encontre meu histórico</span>
+                  </label>
+                </div>
+              </fieldset>
               <label className="block text-sm font-semibold text-slate-700">Nome completo
                 <Input className="mt-1.5" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Como aparece no Wellhub ou TotalPass" required minLength={3} />
               </label>
@@ -97,10 +114,10 @@ export function PublicContactActivationPage({ code }: { code: string }) {
                   ))}
                 </div>
               </fieldset>
-              <label className="block text-sm font-semibold text-slate-700">Data de um check-in recente
+              {!isNewStudent && <label className="block text-sm font-semibold text-slate-700">Data de um check-in recente
                 <Input className="mt-1.5" type="date" value={checkinDate} onChange={(event) => setCheckinDate(event.target.value)} required max={new Date().toISOString().slice(0, 10)} />
                 <span className="mt-1.5 block text-xs font-normal leading-5 text-slate-500">Pode ser a presença de hoje ou outra data que você consulte no aplicativo.</span>
-              </label>
+              </label>}
               <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <input className="mt-1 h-4 w-4 accent-orange-600" type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} required />
                 <span className="text-xs leading-5 text-slate-700">{config.consent_text}</span>
