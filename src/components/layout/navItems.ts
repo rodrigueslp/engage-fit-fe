@@ -18,7 +18,6 @@ export const navItems: NavItem[] = [
   { key: 'reports', label: 'Relatórios', icon: Dumbbell, group: 'Gestão' },
   { key: 'team', label: 'Equipe', icon: Users, group: 'Gestão' },
   { key: 'settings', label: 'Configurações', icon: Settings, group: 'Gestão' },
-  { key: 'billing', label: 'Plano e cobranças', icon: CreditCard, group: 'Gestão' },
 ];
 
 export const adminNavItems: NavItem[] = [
@@ -35,7 +34,7 @@ export function navItemsForRole(role: string | undefined, capabilities: Capabili
     if (item.key === 'automation') return capabilities.automation;
     if (item.key === 'email') return capabilities.email;
     if (item.key === 'workouts') return capabilities.workouts;
-    if (item.key === 'billing' || item.key === 'admin-billing') return capabilities.billing;
+    if (item.key === 'admin-billing') return capabilities.billing;
     return true;
   });
 }

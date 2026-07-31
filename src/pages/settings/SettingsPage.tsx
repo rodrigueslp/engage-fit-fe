@@ -4,8 +4,6 @@ import {
   KeyRound,
   MessageCircle,
   Plug,
-  Save,
-  ShieldAlert,
 } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 import { PageHeader } from '../../components/common/PageHeader';
@@ -15,20 +13,14 @@ import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { api } from '../../features/api/endpoints';
 
-type SettingsSection = 'risk' | 'security' | 'whatsapp';
+type SettingsSection = 'security' | 'whatsapp';
 
 const sections: Array<{
   id: SettingsSection;
   label: string;
   description: string;
-  icon: typeof ShieldAlert;
+  icon: typeof KeyRound;
 }> = [
-  {
-    id: 'risk',
-    label: 'Alunos em risco',
-    description: 'Critérios e frequência de contato',
-    icon: ShieldAlert,
-  },
   {
     id: 'security',
     label: 'Acesso e segurança',
@@ -44,10 +36,7 @@ const sections: Array<{
 ];
 
 export function SettingsPage({ whatsappEnabled, onSessionRevoked }: { whatsappEnabled: boolean; onSessionRevoked: () => void }) {
-  const [activeSection, setActiveSection] = useState<SettingsSection>('risk');
-  const [boxName, setBoxName] = useState('');
-  const [riskInactiveDays, setRiskInactiveDays] = useState(7);
-  const [riskMessageCooldownDays, setRiskMessageCooldownDays] = useState(14);
+  const [activeSection, setActiveSection] = useState<SettingsSection>('security');
   const [connectionMode, setConnectionMode] = useState<'platform' | 'dedicated'>('platform');
   const [provider, setProvider] = useState<'twilio' | 'meta_cloud'>('twilio');
   const [baseUrl, setBaseUrl] = useState('');
@@ -59,7 +48,6 @@ export function SettingsPage({ whatsappEnabled, onSessionRevoked }: { whatsappEn
   const [platformAvailable, setPlatformAvailable] = useState(false);
   const [platformSender, setPlatformSender] = useState('');
   const [loading, setLoading] = useState(true);
-  const [savingRiskSettings, setSavingRiskSettings] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -69,11 +57,8 @@ export function SettingsPage({ whatsappEnabled, onSessionRevoked }: { whatsappEn
   const [status, setStatus] = useState('');
 
   useEffect(() => {
-    Promise.all([whatsappEnabled ? api.whatsappSettings() : Promise.resolve(undefined), api.box()])
-      .then(([settings, box]) => {
-        setBoxName(box.name ?? '');
-        setRiskInactiveDays(box.risk_inactive_days ?? 7);
-        setRiskMessageCooldownDays(box.risk_message_cooldown_days ?? 14);
+    Promise.all([whatsappEnabled ? api.whatsappSettings() : Promise.resolve(undefined)])
+      .then(([settings]) => {
         if (settings) {
           setConnectionMode(settings.connection_mode ?? 'platform');
           setProvider(settings.provider ?? 'twilio');
@@ -114,27 +99,6 @@ export function SettingsPage({ whatsappEnabled, onSessionRevoked }: { whatsappEn
       setError(err instanceof Error ? err.message : 'Erro ao testar conexão');
     } finally {
       setTesting(false);
-    }
-  }
-
-  async function saveRiskSettings(event: FormEvent) {
-    event.preventDefault();
-    setError('');
-    setStatus('');
-    setSavingRiskSettings(true);
-    try {
-      const box = await api.updateBox({
-        name: boxName,
-        risk_inactive_days: riskInactiveDays,
-        risk_message_cooldown_days: riskMessageCooldownDays,
-      });
-      setRiskInactiveDays(box.risk_inactive_days ?? 7);
-      setRiskMessageCooldownDays(box.risk_message_cooldown_days ?? 14);
-      setStatus('Regras de alunos em risco salvas com sucesso');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar regras de risco');
-    } finally {
-      setSavingRiskSettings(false);
     }
   }
 
@@ -222,70 +186,6 @@ export function SettingsPage({ whatsappEnabled, onSessionRevoked }: { whatsappEn
         </nav>
 
         <div className="min-w-0">
-          {activeSection === 'risk' && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-accent-soft text-accent-dark">
-                    <ShieldAlert className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-bold text-slate-950">Quando um aluno precisa de atenção?</h2>
-                    <p className="mt-1 text-sm text-slate-500">Defina quando o aluno aparece como “em risco” e o intervalo mínimo entre contatos.</p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <form className="space-y-6" onSubmit={saveRiskSettings}>
-                  <div className="grid gap-5 md:grid-cols-2">
-                    <label className="space-y-2 text-sm font-semibold text-slate-700">
-                      Dias sem check-in
-                      <Input
-                        type="number"
-                        min={1}
-                        max={365}
-                        value={riskInactiveDays}
-                        onChange={(event) => setRiskInactiveDays(Number(event.target.value))}
-                        required
-                      />
-                      <span className="block text-xs font-normal leading-relaxed text-slate-500">
-                        Depois desse período, o aluno entra na lista de atenção.
-                      </span>
-                    </label>
-                    <label className="space-y-2 text-sm font-semibold text-slate-700">
-                      Intervalo entre mensagens
-                      <Input
-                        type="number"
-                        min={1}
-                        max={365}
-                        value={riskMessageCooldownDays}
-                        onChange={(event) => setRiskMessageCooldownDays(Number(event.target.value))}
-                        required
-                      />
-                      <span className="block text-xs font-normal leading-relaxed text-slate-500">
-                        Evita abordar o mesmo aluno novamente antes desse prazo.
-                      </span>
-                    </label>
-                  </div>
-
-                  <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
-                    <p className="font-bold">Como a regra será aplicada</p>
-                    <p className="mt-1 leading-relaxed text-sky-800">
-                      Um aluno será considerado em risco após <strong>{riskInactiveDays || 0} dias</strong> sem check-in. Depois de uma abordagem, uma nova mensagem poderá ser enviada após <strong>{riskMessageCooldownDays || 0} dias</strong>.
-                    </p>
-                  </div>
-
-                  <div className="flex justify-end border-t border-slate-100 pt-5">
-                    <Button disabled={savingRiskSettings}>
-                      <Save className="h-4 w-4" />
-                      {savingRiskSettings ? 'Salvando...' : 'Salvar alterações'}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          )}
-
           {activeSection === 'security' && (
             <Card>
               <CardHeader>

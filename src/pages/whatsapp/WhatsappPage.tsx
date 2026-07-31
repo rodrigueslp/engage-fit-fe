@@ -335,7 +335,7 @@ function templateTypeLabel(type: MessageTemplateType) {
   const labels: Record<MessageTemplateType, string> = {
     ALMOST_THERE: 'Falta pouco',
     GOAL_REACHED: 'Meta atingida',
-    WE_MISS_YOU: 'Sentimos sua falta',
+    WE_MISS_YOU: 'Desativada',
   };
   return labels[type] ?? type;
 }

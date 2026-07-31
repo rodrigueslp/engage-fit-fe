@@ -19,15 +19,14 @@ import { LoadingState } from '../components/common/State';
 import { ShowcasePage } from '../pages/showcase/ShowcasePage';
 import { MessagingGovernancePage } from '../pages/admin/MessagingGovernancePage';
 import { BillingManagementPage } from '../pages/admin/BillingManagementPage';
-import { BillingPage } from '../pages/billing/BillingPage';
 import { RetentionPage } from '../pages/retention/RetentionPage';
 import { TeamPage } from '../pages/team/TeamPage';
 import { ContactActivationPage } from '../pages/activation/ContactActivationPage';
 import { PublicContactActivationPage } from '../pages/activation/PublicContactActivationPage';
 
-export type PageKey = 'showcase' | 'dashboard' | 'retention' | 'campaigns' | 'rewards' | 'students' | 'activation' | 'checkins' | 'imports' | 'whatsapp' | 'workouts' | 'email' | 'automation' | 'reports' | 'team' | 'settings' | 'billing' | 'admin-messaging' | 'admin-billing';
+export type PageKey = 'showcase' | 'dashboard' | 'retention' | 'campaigns' | 'rewards' | 'students' | 'activation' | 'checkins' | 'imports' | 'whatsapp' | 'workouts' | 'email' | 'automation' | 'reports' | 'team' | 'settings' | 'admin-messaging' | 'admin-billing';
 
-const pageKeys: PageKey[] = ['showcase', 'dashboard', 'retention', 'campaigns', 'rewards', 'students', 'activation', 'checkins', 'imports', 'whatsapp', 'workouts', 'email', 'automation', 'reports', 'team', 'settings', 'billing', 'admin-messaging', 'admin-billing'];
+const pageKeys: PageKey[] = ['showcase', 'dashboard', 'retention', 'campaigns', 'rewards', 'students', 'activation', 'checkins', 'imports', 'whatsapp', 'workouts', 'email', 'automation', 'reports', 'team', 'settings', 'admin-messaging', 'admin-billing'];
 const coachPages: PageKey[] = ['dashboard', 'retention', 'students', 'checkins'];
 
 function pageFromHash(): PageKey {
@@ -82,7 +81,7 @@ export function App() {
       || (page === 'automation' && !capabilities.automation)
       || (page === 'email' && !capabilities.email)
       || (page === 'workouts' && !capabilities.workouts)
-      || ((page === 'billing' || page === 'admin-billing') && !capabilities.billing);
+      || (page === 'admin-billing' && !capabilities.billing);
     if (disabled) {
       window.location.hash = 'dashboard';
       setPage('dashboard');
@@ -138,7 +137,7 @@ export function App() {
     if (nextPage === 'automation' && !capabilities.automation) nextPage = 'dashboard';
     if (nextPage === 'email' && !capabilities.email) nextPage = 'dashboard';
     if (nextPage === 'workouts' && !capabilities.workouts) nextPage = 'dashboard';
-    if ((nextPage === 'billing' || nextPage === 'admin-billing') && !capabilities.billing) nextPage = 'dashboard';
+    if (nextPage === 'admin-billing' && !capabilities.billing) nextPage = 'dashboard';
     setPage(nextPage);
     window.location.hash = nextPage;
   }
@@ -162,7 +161,6 @@ export function App() {
       {renderedPage === 'reports' && <ReportsPage />}
       {renderedPage === 'team' && user.role === 'OWNER' && <TeamPage />}
       {renderedPage === 'settings' && <SettingsPage whatsappEnabled={capabilities.whatsapp} onSessionRevoked={() => { setUser(undefined); setBox(undefined); }} />}
-      {renderedPage === 'billing' && capabilities.billing && user.role !== 'PLATFORM_ADMIN' && <BillingPage />}
       {renderedPage === 'admin-messaging' && user.role === 'PLATFORM_ADMIN' && <MessagingGovernancePage whatsappEnabled={capabilities.whatsapp} />}
       {renderedPage === 'admin-billing' && capabilities.billing && user.role === 'PLATFORM_ADMIN' && <BillingManagementPage />}
     </AppLayout>

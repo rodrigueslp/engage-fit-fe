@@ -324,7 +324,7 @@ export type OnboardingJourneyItem = {
   source: Source;
   contact_status: Student['contact_status'];
   membership_started_at: string;
-  membership_started_source: 'manual' | 'integration' | 'first_checkin_inferred';
+  membership_started_source: 'manual' | 'integration' | 'first_checkin_inferred' | 'self_registration';
   membership_start_confidence: 'confirmed' | 'probable';
   observation_days_before_start: number;
   day: number;
