@@ -104,6 +104,11 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ started_at: startedAt }),
     }),
+  updateRetentionMonitoring: (studentId: string, payload: { status: 'monitored' | 'excluded'; reason?: string; excluded_until?: string }) =>
+    apiRequest<void>(`/api/v1/students/${studentId}/retention-monitoring`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
   retentionInterventions: (studentId: string) =>
     apiRequest<RetentionIntervention[]>(`/api/v1/students/${studentId}/retention-interventions`),
   createRetentionIntervention: (studentId: string, payload: Pick<RetentionIntervention, 'channel' | 'status' | 'outcome' | 'reason_code' | 'assigned_to_user_id' | 'notes'> & { planned_for?: string }) =>

@@ -1,4 +1,4 @@
-import { AlertTriangle, BarChart3, BookOpen, CalendarDays, CheckCircle2, Clock3, HeartPulse, Info, Search, X } from 'lucide-react';
+import { AlertTriangle, Ban, BarChart3, BookOpen, CalendarDays, CheckCircle2, Clock3, HeartPulse, Info, Search, UserRoundCheck, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { api } from '../../features/api/endpoints';
 import { retentionGuide } from '../../features/help/guides/retentionGuide';
-import type { EngagementLevel, OnboardingJourneyItem, RetentionIntervention, RetentionRadarItem, RetentionReason, RetentionRules, RetentionSummary, RetentionWorkflowStatus, TeamMember } from '../../features/api/types';
+import type { EngagementLevel, OnboardingJourneyItem, RetentionExclusionReason, RetentionIntervention, RetentionRadarItem, RetentionReason, RetentionRules, RetentionSummary, RetentionWorkflowStatus, TeamMember } from '../../features/api/types';
 import { StudentAttendancePanel } from '../../components/checkins/StudentAttendancePanel';
 
 const levelInfo: Record<EngagementLevel, { label: string; className: string }> = {
@@ -20,14 +20,17 @@ const levelInfo: Record<EngagementLevel, { label: string; className: string }> =
   healthy: { label: 'Frequência estável', className: 'bg-sky-50 text-sky-700 ring-sky-200' },
 };
 
+type RetentionQueue = 'action' | 'waiting' | 'recovered' | 'historical' | 'excluded' | 'paused' | 'all';
+
 export function RetentionPage() {
   const [items, setItems] = useState<RetentionRadarItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [level, setLevel] = useState<'all' | EngagementLevel>('all');
-  const [queue, setQueue] = useState<'action' | 'waiting' | 'recovered' | 'paused' | 'all'>('action');
+  const [queue, setQueue] = useState<RetentionQueue>('action');
   const [selected, setSelected] = useState<RetentionRadarItem>();
+  const [monitoringStudent, setMonitoringStudent] = useState<RetentionRadarItem>();
   const [attendanceStudent, setAttendanceStudent] = useState<RetentionRadarItem>();
   const [section, setSection] = useState<'radar' | 'onboarding' | 'results'>('radar');
   const [summary, setSummary] = useState<RetentionSummary>();
@@ -67,6 +70,8 @@ export function RetentionPage() {
   const actionTotal = items.filter((item) => item.workflow_status === 'needs_action' || item.workflow_status === 'follow_up_due').length;
   const waitingTotal = items.filter((item) => item.workflow_status === 'waiting_return').length;
   const recoveredTotal = items.filter((item) => item.workflow_status === 'recovered').length;
+  const historicalTotal = items.filter((item) => item.workflow_status === 'historical').length;
+  const excludedTotal = items.filter((item) => item.workflow_status === 'excluded').length;
 
   return (
     <div className="space-y-5">
@@ -87,11 +92,12 @@ export function RetentionPage() {
       {section === 'results' ? (
         <ResultsPanel summary={summary} loading={loading} start={periodStart} end={periodEnd} onStart={setPeriodStart} onEnd={setPeriodEnd} onLoad={() => void load()} />
       ) : section === 'onboarding' ? (
-        <OnboardingPanel items={onboarding} loading={loading} onReload={load} onFrequency={(item) => setAttendanceStudent({ student_id: item.student_id, student_name: item.student_name, student_phone: item.student_phone, source: item.source } as RetentionRadarItem)} onAction={(item) => setSelected(items.find((radarItem) => radarItem.student_id === item.student_id))} />
+        <OnboardingPanel items={onboarding} loading={loading} onReload={load} onFrequency={(item) => setAttendanceStudent({ student_id: item.student_id, student_name: item.student_name, student_phone: item.student_phone, source: item.source } as RetentionRadarItem)} onAction={(item) => setSelected(items.find((radarItem) => radarItem.student_id === item.student_id))} onMonitoring={(item) => setMonitoringStudent(items.find((radarItem) => radarItem.student_id === item.student_id))} />
       ) : <>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Precisam de ação" value={actionTotal} icon={AlertTriangle} tone="text-orange-600" />
         <Metric label="Aguardando retorno" value={waitingTotal} icon={Clock3} tone="text-sky-600" />
+        <Metric label="Inativos históricos" value={historicalTotal} icon={Clock3} tone="text-slate-500" />
         <Metric label="Retornos observados" value={recoveredTotal} icon={CheckCircle2} tone="text-emerald-600" />
       </div>
 
@@ -101,6 +107,8 @@ export function RetentionPage() {
             <QueueTab active={queue === 'action'} label={`Precisa de ação (${actionTotal})`} onClick={() => setQueue('action')} />
             <QueueTab active={queue === 'waiting'} label={`Em acompanhamento (${waitingTotal})`} onClick={() => setQueue('waiting')} />
             <QueueTab active={queue === 'recovered'} label={`Retornos (${recoveredTotal})`} onClick={() => setQueue('recovered')} />
+            <QueueTab active={queue === 'historical'} label={`Inativos históricos (${historicalTotal})`} onClick={() => setQueue('historical')} />
+            <QueueTab active={queue === 'excluded'} label={`Não acompanhados (${excludedTotal})`} onClick={() => setQueue('excluded')} />
             <QueueTab active={queue === 'paused'} label="Pausados/encerrados" onClick={() => setQueue('paused')} />
             <QueueTab active={queue === 'all'} label="Todos" onClick={() => setQueue('all')} />
           </div>
@@ -119,7 +127,7 @@ export function RetentionPage() {
         <CardContent className="p-0">
           {loading ? <div className="p-5"><LoadingState /></div> : filtered.length === 0 ? <div className="p-5"><EmptyState message="Nenhum aluno encontrado para este filtro" /></div> : (
             <div className="divide-y divide-slate-100">
-              {filtered.map((item) => <RadarRow key={item.student_id} item={item} onAction={() => setSelected(item)} onFrequency={() => setAttendanceStudent(item)} />)}
+              {filtered.map((item) => <RadarRow key={item.student_id} item={item} onAction={() => setSelected(item)} onFrequency={() => setAttendanceStudent(item)} onMonitoring={() => setMonitoringStudent(item)} />)}
             </div>
           )}
         </CardContent>
@@ -127,6 +135,7 @@ export function RetentionPage() {
       </>}
 
       {selected && <InterventionModal item={selected} team={team} onClose={() => setSelected(undefined)} onSaved={async () => { setSelected(undefined); await load(); }} />}
+      {monitoringStudent && <MonitoringModal item={monitoringStudent} onClose={() => setMonitoringStudent(undefined)} onSaved={async () => { setMonitoringStudent(undefined); await load(); }} />}
       {attendanceStudent && <StudentAttendancePanel student={{ id: attendanceStudent.student_id, name: attendanceStudent.student_name, phone: attendanceStudent.student_phone, source: attendanceStudent.source }} onClose={() => setAttendanceStudent(undefined)} />}
       {rulesOpen && rules && <RetentionRulesPanel rules={rules} items={items} onClose={() => setRulesOpen(false)} />}
       <ProductGuide open={guideOpen} title="Como usar a Retenção" description="Um guia prático para organizar a rotina, interpretar os sinais e registrar acompanhamentos com consistência." sections={retentionGuide} onClose={() => setGuideOpen(false)} />
@@ -134,15 +143,15 @@ export function RetentionPage() {
   );
 }
 
-function RadarRow({ item, onAction, onFrequency }: { item: RetentionRadarItem; onAction: () => void; onFrequency: () => void }) {
+function RadarRow({ item, onAction, onFrequency, onMonitoring }: { item: RetentionRadarItem; onAction: () => void; onFrequency: () => void; onMonitoring: () => void }) {
   const info = levelInfo[item.level];
   const workflow = workflowInfo(item.workflow_status);
   return (
     <div className="grid gap-4 p-4 lg:grid-cols-[minmax(200px,1.1fr)_minmax(260px,1.5fr)_170px_auto] lg:items-center lg:px-5">
       <div><div className="flex flex-wrap items-center gap-2"><p className="font-bold text-slate-950">{item.student_name}</p><span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${info.className}`}>{info.label}</span></div><p className="mt-1 text-xs text-slate-500">{item.source === 'wellhub' ? 'Wellhub' : 'TotalPass'} · {item.student_phone || 'Sem telefone'}</p></div>
-      <div>{item.signals.length ? item.signals.map((signal) => <p key={signal.code} className="text-sm text-slate-600">{signal.message}</p>) : <p className="text-sm text-slate-500">Nenhuma mudança relevante observada.</p>}<p className={`mt-2 text-xs font-bold ${workflow.tone}`}>{workflow.label}{lastActionSummary(item)}</p><p className="mt-1 text-xs text-slate-500"><strong className="text-slate-700">{item.recommendation.title}:</strong> {item.recommendation.message}</p>{item.contact_status === 'opted_out' && <p className="mt-1 text-xs font-semibold text-red-600">Contato eletrônico não autorizado</p>}</div>
+      <div>{item.signals.length ? item.signals.map((signal) => <p key={signal.code} className="text-sm text-slate-600">{signal.message}</p>) : <p className="text-sm text-slate-500">Nenhuma mudança relevante observada.</p>}<p className={`mt-2 text-xs font-bold ${workflow.tone}`}>{workflow.label}{lastActionSummary(item)}</p>{item.workflow_status === 'excluded' && <p className="mt-1 text-xs text-slate-500">Motivo: {exclusionReasonLabel(item.retention_exclusion_reason)}{item.retention_excluded_until ? ` · até ${formatRuleDate(item.retention_excluded_until)}` : ' · sem prazo'}</p>}<p className="mt-1 text-xs text-slate-500"><strong className="text-slate-700">{item.recommendation.title}:</strong> {item.recommendation.message}</p>{item.contact_status === 'opted_out' && <p className="mt-1 text-xs font-semibold text-red-600">Contato eletrônico não autorizado</p>}</div>
       <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500"><p><strong className="text-slate-800">{item.recent_checkins}</strong> check-ins recentes</p><p className="mt-1">{item.previous_checkins} nas 4 semanas anteriores</p>{item.days_since_checkin !== undefined && <p className="mt-1">{item.days_since_checkin} dias desde a última presença</p>}</div>
-      <div className="grid gap-2"><Button variant="secondary" onClick={onFrequency}><CalendarDays className="h-4 w-4" />Ver frequência</Button><Button variant="secondary" onClick={onAction}>{item.last_intervention_id ? 'Atualizar acompanhamento' : 'Registrar ação'}</Button></div>
+      <div className="grid gap-2"><Button variant="secondary" onClick={onFrequency}><CalendarDays className="h-4 w-4" />Ver frequência</Button>{item.workflow_status !== 'excluded' && <Button variant="secondary" onClick={onAction}>{item.last_intervention_id ? 'Atualizar acompanhamento' : item.workflow_status === 'historical' ? 'Registrar reativação' : 'Registrar ação'}</Button>}<Button variant="ghost" onClick={onMonitoring}>{item.workflow_status === 'excluded' ? <><UserRoundCheck className="h-4 w-4" />Voltar a acompanhar</> : <><Ban className="h-4 w-4" />Não acompanhar</>}</Button></div>
     </div>
   );
 }
@@ -164,6 +173,8 @@ function RetentionRulesPanel({ rules, items, onClose }: { rules: RetentionRules;
               <RuleValue label="Período anterior" value={`${formatRuleDate(rules.previous_start)} a ${formatRuleDate(rules.previous_end)}`} detail="As quatro semanas anteriores" />
               <RuleValue label="Histórico necessário" value={`Primeira presença até ${formatRuleDate(rules.history_required_before)}`} detail={`${rules.history_days / 7} semanas para comparação`} />
               <RuleValue label="Rotina mínima" value={`${rules.minimum_total_checkins} presenças no histórico`} detail="Visitas isoladas não viram alerta de retenção" />
+              <RuleValue label="Fila operacional" value={`Até ${rules.operational_inactive_days} dias sem presença`} detail="Ausências maiores ficam separadas como reativação histórica" />
+              <RuleValue label="Linha de base" value={rules.baseline_at ? formatRuleDate(rules.baseline_at) : 'Aguardando primeira importação'} detail="Marca o início do acompanhamento deste box" />
             </CardContent>
           </Card>
 
@@ -197,7 +208,7 @@ function RetentionRulesPanel({ rules, items, onClose }: { rules: RetentionRules;
                   <OnboardingRuleTag info={onboardingStatusInfo('interrupted')} description={`Depois de formar uma rotina com pelo menos duas presenças, o aluno chegou a ${rules.at_risk_inactive_days} dias ou mais sem check-in.`} />
                 </div>
               </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">Datas com pouca cobertura anterior não entram nesta seção. Por isso, a planilha atual do TotalPass ainda não é usada para afirmar que alguém está no primeiro mês.</div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">Datas com pouca cobertura anterior não entram nesta seção. Uma importação de 90 dias permite reconhecer inícios prováveis sem descartar o histórico usado no cálculo.</div>
             </CardContent>
           </Card>
 
@@ -301,6 +312,42 @@ function InterventionModal({ item, team, onClose, onSaved }: { item: RetentionRa
   );
 }
 
+function MonitoringModal({ item, onClose, onSaved }: { item: RetentionRadarItem; onClose: () => void; onSaved: () => Promise<void> }) {
+  const restoring = item.workflow_status === 'excluded';
+  const [reason, setReason] = useState<RetentionExclusionReason>(item.retention_exclusion_reason || 'visitor');
+  const [temporary, setTemporary] = useState(Boolean(item.retention_excluded_until));
+  const [excludedUntil, setExcludedUntil] = useState(item.retention_excluded_until || defaultExclusionDate());
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  async function save() {
+    setSaving(true); setError('');
+    try {
+      await api.updateRetentionMonitoring(item.student_id, restoring
+        ? { status: 'monitored' }
+        : { status: 'excluded', reason, excluded_until: temporary ? excludedUntil : undefined });
+      await onSaved();
+    } catch (err) { setError(err instanceof Error ? err.message : 'Não foi possível atualizar o monitoramento.'); }
+    finally { setSaving(false); }
+  }
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true">
+      <Card className="w-full rounded-b-none sm:max-w-lg sm:rounded-xl">
+        <CardHeader><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-accent">Monitoramento de retenção</p><h2 className="mt-1 text-lg font-bold text-slate-950">{item.student_name}</h2></div><button className="rounded-md p-2 text-slate-500 hover:bg-slate-100" onClick={onClose} aria-label="Fechar"><X className="h-5 w-5" /></button></div></CardHeader>
+        <CardContent className="space-y-4">
+          {error && <ErrorState message={error} />}
+          {restoring ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"><strong>Voltar a acompanhar?</strong><p className="mt-1">O aluno voltará ao radar e aos Primeiros 30 dias quando atender às regras. Check-ins e histórico já permanecem preservados.</p></div> : <>
+            <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900"><strong>Os dados não serão apagados.</strong><p className="mt-1">A exclusão vale somente para Retenção, Dashboard e Primeiros 30 dias. Campanhas, brindes e frequência não são alterados.</p></div>
+            <label className="block space-y-1 text-xs font-semibold text-slate-500">Motivo<select className="mt-1 h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm" value={reason} onChange={(event) => setReason(event.target.value as RetentionExclusionReason)}><option value="visitor">Visitante ou drop-in</option><option value="former_member">Ex-aluno ou cancelado</option><option value="long_pause">Pausa longa</option><option value="outside_retention">Fora do público de retenção</option><option value="other">Outro</option></select></label>
+            <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm text-slate-700"><input className="mt-1" type="checkbox" checked={temporary} onChange={(event) => setTemporary(event.target.checked)} /><span><strong>Exclusão temporária</strong><span className="mt-0.5 block text-xs font-normal text-slate-500">Ao vencer, o aluno volta automaticamente ao radar.</span></span></label>
+            {temporary && <label className="block space-y-1 text-xs font-semibold text-slate-500">Não acompanhar até<Input className="mt-1" type="date" min={todayDate()} value={excludedUntil} onChange={(event) => setExcludedUntil(event.target.value)} /></label>}
+          </>}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button variant="ghost" onClick={onClose}>Cancelar</Button><Button disabled={saving || (!restoring && temporary && !excludedUntil)} onClick={() => void save()}>{saving ? 'Salvando...' : restoring ? 'Voltar a acompanhar' : 'Confirmar exclusão'}</Button></div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function channelLabel(value: RetentionIntervention['channel']) {
   return { whatsapp: 'WhatsApp', phone: 'Telefone', in_person: 'Presencial', other: 'Outro' }[value];
 }
@@ -324,12 +371,24 @@ function reasonLabel(value: RetentionReason | string) {
   }[value] || value;
 }
 
-function OnboardingPanel({ items, loading, onReload, onFrequency, onAction }: {
+function exclusionReasonLabel(value?: RetentionExclusionReason) {
+  if (!value) return 'Não informado';
+  return {
+    visitor: 'Visitante ou drop-in',
+    former_member: 'Ex-aluno ou cancelado',
+    long_pause: 'Pausa longa',
+    outside_retention: 'Fora do público de retenção',
+    other: 'Outro',
+  }[value];
+}
+
+function OnboardingPanel({ items, loading, onReload, onFrequency, onAction, onMonitoring }: {
   items: OnboardingJourneyItem[];
   loading: boolean;
   onReload: () => Promise<void>;
   onFrequency: (item: OnboardingJourneyItem) => void;
   onAction: (item: OnboardingJourneyItem) => void;
+  onMonitoring: (item: OnboardingJourneyItem) => void;
 }) {
   if (loading && items.length === 0) return <LoadingState />;
   if (items.length === 0) return <Card><CardContent className="p-5"><EmptyState message="Nenhum início confirmado ou provável nos últimos 30 dias" /></CardContent></Card>;
@@ -337,17 +396,18 @@ function OnboardingPanel({ items, loading, onReload, onFrequency, onAction }: {
     <Card>
       <CardHeader><h2 className="font-bold text-slate-950">Formação da rotina</h2><p className="text-sm text-slate-500">Inclui datas confirmadas e primeiras presenças com pelo menos oito semanas anteriores de cobertura sem outro check-in.</p></CardHeader>
       <CardContent className="divide-y divide-slate-100 p-0">
-        {items.map((item) => <OnboardingRow key={item.student_id} item={item} onReload={onReload} onFrequency={() => onFrequency(item)} onAction={() => onAction(item)} />)}
+        {items.map((item) => <OnboardingRow key={item.student_id} item={item} onReload={onReload} onFrequency={() => onFrequency(item)} onAction={() => onAction(item)} onMonitoring={() => onMonitoring(item)} />)}
       </CardContent>
     </Card>
   );
 }
 
-function OnboardingRow({ item, onReload, onFrequency, onAction }: {
+function OnboardingRow({ item, onReload, onFrequency, onAction, onMonitoring }: {
   item: OnboardingJourneyItem;
   onReload: () => Promise<void>;
   onFrequency: () => void;
   onAction: () => void;
+  onMonitoring: () => void;
 }) {
   const [startedAt, setStartedAt] = useState(item.membership_started_at);
   const [saving, setSaving] = useState(false);
@@ -372,7 +432,7 @@ function OnboardingRow({ item, onReload, onFrequency, onAction }: {
         <p className="mt-1 text-[11px] text-slate-400">{item.membership_start_confidence === 'probable' ? `Início provável: havia ${item.observation_days_before_start} dias cobertos sem presença anterior. Confirme a data se souber.` : 'Data confirmada pela operação.'}</p>
         {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
       </div>
-      <div className="grid gap-2"><Button variant="secondary" onClick={onFrequency}><CalendarDays className="h-4 w-4" />Ver frequência</Button><Button variant="secondary" onClick={onAction}>Registrar ação</Button></div>
+      <div className="grid gap-2"><Button variant="secondary" onClick={onFrequency}><CalendarDays className="h-4 w-4" />Ver frequência</Button><Button variant="secondary" onClick={onAction}>Registrar ação</Button><Button variant="ghost" onClick={onMonitoring}><Ban className="h-4 w-4" />Não acompanhar</Button></div>
     </div>
   );
 }
@@ -423,7 +483,7 @@ function ResultsPanel({ summary, loading, start, end, onStart, onEnd, onLoad }: 
           <Metric label="Retorno em até 14 dias" value={summary.return_within_14_days} icon={HeartPulse} tone="text-emerald-600" />
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
-          <Card><CardHeader><h2 className="font-bold text-slate-950">Fila atual</h2><p className="text-sm text-slate-500">Retrato de hoje, independente do período selecionado.</p></CardHeader><CardContent className="grid grid-cols-2 gap-3"><SmallMetric label="Precisam de ação" value={summary.needs_action} /><SmallMetric label="Revisões vencidas" value={summary.follow_up_due} /><SmallMetric label="Em acompanhamento" value={summary.waiting_return} /><SmallMetric label="Retornos destacados" value={summary.recovered} /></CardContent></Card>
+          <Card><CardHeader><h2 className="font-bold text-slate-950">Fila atual</h2><p className="text-sm text-slate-500">Retrato de hoje, independente do período selecionado.</p></CardHeader><CardContent className="grid grid-cols-2 gap-3"><SmallMetric label="Precisam de ação" value={summary.needs_action} /><SmallMetric label="Revisões vencidas" value={summary.follow_up_due} /><SmallMetric label="Em acompanhamento" value={summary.waiting_return} /><SmallMetric label="Retornos destacados" value={summary.recovered} /><SmallMetric label="Inativos históricos" value={summary.historical_inactive} /><SmallMetric label="Não acompanhados" value={summary.excluded} /></CardContent></Card>
           <Card><CardHeader><h2 className="font-bold text-slate-950">Tempo de retorno</h2><p className="text-sm text-slate-500">Mediana entre a ação concluída e a primeira presença observada em até 14 dias.</p></CardHeader><CardContent><p className="text-3xl font-bold text-slate-950">{summary.median_days_to_return == null ? '—' : `${formatDecimal(summary.median_days_to_return)} dias`}</p><p className="mt-2 text-xs text-slate-500">Casos sem retorno no período não entram na mediana.</p></CardContent></Card>
         </div>
         <div className="grid gap-4 lg:grid-cols-3">
@@ -456,11 +516,13 @@ function QueueTab({ active, label, onClick }: { active: boolean; label: string; 
   return <button type="button" onClick={onClick} className={`whitespace-nowrap rounded-full px-3 py-2 text-xs font-bold transition ${active ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{label}</button>;
 }
 
-function matchesQueue(status: RetentionWorkflowStatus, queue: 'action' | 'waiting' | 'recovered' | 'paused' | 'all') {
+function matchesQueue(status: RetentionWorkflowStatus, queue: RetentionQueue) {
   if (queue === 'all') return true;
   if (queue === 'action') return status === 'needs_action' || status === 'follow_up_due';
   if (queue === 'waiting') return status === 'waiting_return';
   if (queue === 'recovered') return status === 'recovered';
+  if (queue === 'historical') return status === 'historical';
+  if (queue === 'excluded') return status === 'excluded';
   return status === 'paused' || status === 'closed';
 }
 
@@ -472,6 +534,8 @@ function workflowInfo(status: RetentionWorkflowStatus) {
     paused: { label: 'Acompanhamento pausado', tone: 'text-slate-500' },
     closed: { label: 'Acompanhamento encerrado', tone: 'text-slate-500' },
     recovered: { label: 'Retorno observado', tone: 'text-emerald-600' },
+    historical: { label: 'Inativo histórico · revisar para reativação', tone: 'text-slate-600' },
+    excluded: { label: 'Não acompanhado pelo radar', tone: 'text-slate-500' },
     none: { label: 'Sem ação necessária', tone: 'text-slate-400' },
   };
   return values[status];
@@ -489,6 +553,12 @@ function lastActionSummary(item: RetentionRadarItem) {
 function defaultReviewDate() {
   const date = new Date();
   date.setDate(date.getDate() + 7);
+  return date.toISOString().slice(0, 10);
+}
+
+function defaultExclusionDate() {
+  const date = new Date();
+  date.setDate(date.getDate() + 30);
   return date.toISOString().slice(0, 10);
 }
 

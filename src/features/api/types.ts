@@ -223,7 +223,8 @@ export type ContactActivation = {
 };
 
 export type EngagementLevel = 'history_insufficient' | 'healthy' | 'attention' | 'at_risk' | 'critical' | 'recovered';
-export type RetentionWorkflowStatus = 'none' | 'needs_action' | 'waiting_return' | 'follow_up_due' | 'paused' | 'closed' | 'recovered';
+export type RetentionWorkflowStatus = 'none' | 'needs_action' | 'waiting_return' | 'follow_up_due' | 'paused' | 'closed' | 'recovered' | 'historical' | 'excluded';
+export type RetentionExclusionReason = 'visitor' | 'former_member' | 'long_pause' | 'outside_retention' | 'other';
 
 export type RetentionRadarItem = {
   student_id: string;
@@ -257,6 +258,10 @@ export type RetentionRadarItem = {
   last_intervention_created_at?: string;
   last_intervention_assignee_id?: string;
   last_intervention_assignee_name?: string;
+  retention_monitoring_status: 'monitored' | 'excluded';
+  retention_exclusion_reason?: RetentionExclusionReason;
+  retention_excluded_until?: string;
+  retention_excluded_at?: string;
   recommendation: {
     code: string;
     title: string;
@@ -279,6 +284,8 @@ export type RetentionRules = {
   attention_drop_percentage: number;
   at_risk_drop_percentage: number;
   critical_drop_percentage: number;
+  operational_inactive_days: number;
+  baseline_at?: string;
 };
 
 export type RetentionReason = 'travel' | 'schedule' | 'financial' | 'motivation' | 'service' | 'health' | 'moved' | 'unknown' | 'other';
@@ -307,6 +314,8 @@ export type RetentionSummary = {
   waiting_return: number;
   follow_up_due: number;
   recovered: number;
+  historical_inactive: number;
+  excluded: number;
   completed_interventions: number;
   return_within_3_days: number;
   return_within_7_days: number;
