@@ -138,6 +138,10 @@ export const api = {
     apiRequest<ContactActivation>(`/api/v1/contact-activations/${activationId}/resolve`, {
       method: 'POST', body: JSON.stringify({ student_id: studentId }),
     }),
+  createStudentFromContactActivation: (activationId: string) =>
+    apiRequest<ContactActivation>(`/api/v1/contact-activations/${activationId}/create-student`, { method: 'POST' }),
+  cancelContactActivationReview: (activationId: string) =>
+    apiRequest<ContactActivation>(`/api/v1/contact-activations/${activationId}/cancel`, { method: 'POST' }),
   studentCheckins: (studentId: string) => apiRequest<StudentCheckin[]>(`/api/v1/students/${studentId}/checkins`),
   createSelfCheckinSession: () => apiRequest<SelfCheckinSession>('/api/v1/self-checkin-sessions', { method: 'POST' }),
   publicSelfCheckinSession: (token: string) => apiRequest<SelfCheckinSession>(`/api/v1/public/self-checkin/${encodeURIComponent(token)}`, { auth: false }),

@@ -18,6 +18,7 @@ export function ContactActivationPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const publicURL = summary?.activation_code ? `${window.location.origin}${window.location.pathname}#/activate/${summary.activation_code}` : '';
   const pending = useMemo(() => activations.filter((item) => item.status === 'needs_review'), [activations]);
   const syncing = useMemo(() => activations.filter((item) => item.status === 'pending_sync'), [activations]);
@@ -58,6 +59,38 @@ export function ContactActivationPage() {
     }
   }
 
+  async function createStudent(activation: ContactActivation) {
+    if (!window.confirm(`Criar um novo cadastro no Plano da academia para ${activation.claimed_name}?`)) return;
+    setProcessing(activation.id);
+    setError('');
+    setNotice('');
+    try {
+      await api.createStudentFromContactActivation(activation.id);
+      setNotice(`Cadastro de ${activation.claimed_name} criado e ativado com sucesso.`);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível criar o cadastro.');
+    } finally {
+      setProcessing('');
+    }
+  }
+
+  async function discardReview(activation: ContactActivation) {
+    if (!window.confirm(`Descartar a solicitação de ${activation.claimed_name}? O aluno poderá iniciar uma nova ativação depois.`)) return;
+    setProcessing(activation.id);
+    setError('');
+    setNotice('');
+    try {
+      await api.cancelContactActivationReview(activation.id);
+      setNotice(`Solicitação de ${activation.claimed_name} descartada.`);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível descartar a solicitação.');
+    } finally {
+      setProcessing('');
+    }
+  }
+
   async function createAssisted() {
     if (!selectedStudentId) return;
     setProcessing('assisted');
@@ -76,6 +109,7 @@ export function ContactActivationPage() {
     <div className="space-y-5">
       <PageHeader title="Ativação no WhatsApp" eyebrow="Base própria e consentida" description="Convide alunos a vincularem o próprio número e acompanhe a cobertura da sua base." actions={<Button variant="secondary" onClick={() => void load()}><RefreshCw className="h-4 w-4" />Atualizar</Button>} />
       {error && <ErrorState message={error} />}
+      {notice && <InlineNotice tone="success">{notice}</InlineNotice>}
       {loading ? <LoadingState /> : summary && (
         <>
           {!summary.whatsapp_ready && <InlineNotice tone="warning">A conexão Twilio precisa estar ativa e usar um número de telefone como remetente antes de publicar o QR Code.</InlineNotice>}
@@ -125,16 +159,29 @@ export function ContactActivationPage() {
             <CardContent className="space-y-3">
               {pending.length === 0 ? <EmptyState message="Nenhum vínculo aguardando revisão." /> : pending.map((item) => {
                 const candidates = students.filter((student) => student.source === item.source);
-                return <div key={item.id} className="grid gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+                return <div key={item.id} className="grid gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] md:items-end">
                   <div><p className="font-bold text-slate-950">{item.claimed_name}</p><p className="text-xs text-slate-600">{sourceLabel(item.source)} · presença informada {item.recent_checkin_date ? new Date(item.recent_checkin_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'não informada'} · telefone final {item.phone?.slice(-4)}</p></div>
-                  <select id={`resolve-${item.id}`} className="h-10 rounded-md border border-amber-200 bg-white px-3 text-sm" defaultValue="">
-                    <option value="">Selecione o cadastro correto</option>
-                    {candidates.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}
-                  </select>
-                  <Button disabled={processing === item.id} onClick={() => {
-                    const select = document.getElementById(`resolve-${item.id}`) as HTMLSelectElement | null;
-                    void resolve(item, select?.value || '');
-                  }}>Confirmar vínculo</Button>
+                  <div className="space-y-3">
+                    {candidates.length > 0 ? <>
+                      <select id={`resolve-${item.id}`} aria-label={`Cadastro correto para ${item.claimed_name}`} className="h-10 w-full rounded-md border border-amber-200 bg-white px-3 text-sm" defaultValue="">
+                        <option value="">Selecione o cadastro correto</option>
+                        {candidates.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}
+                      </select>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                        <Button variant="ghost" disabled={processing === item.id} onClick={() => void discardReview(item)}>Descartar solicitação</Button>
+                        <Button disabled={processing === item.id} onClick={() => {
+                          const select = document.getElementById(`resolve-${item.id}`) as HTMLSelectElement | null;
+                          void resolve(item, select?.value || '');
+                        }}>Confirmar vínculo</Button>
+                      </div>
+                    </> : <>
+                      <p className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-amber-900">Nenhum cadastro de {sourceLabel(item.source)} foi encontrado para vincular.</p>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                        <Button variant="ghost" disabled={processing === item.id} onClick={() => void discardReview(item)}>Descartar solicitação</Button>
+                        {item.source === 'box_member' && <Button disabled={processing === item.id} onClick={() => void createStudent(item)}>Criar novo cadastro</Button>}
+                      </div>
+                    </>}
+                  </div>
                 </div>;
               })}
             </CardContent>
