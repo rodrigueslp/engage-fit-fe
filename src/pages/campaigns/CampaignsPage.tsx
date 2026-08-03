@@ -370,7 +370,7 @@ export function CampaignsPage() {
                       <Input min="1" type="number" value={totalpassGoal} onChange={(event) => setTotalpassGoal(event.target.value)} required />
                     </label>
                     <label className="space-y-1 text-xs font-semibold text-slate-500">
-                      Mensalistas do box
+                      Plano da academia
                       <Input min="1" type="number" value={boxMemberGoal} onChange={(event) => setBoxMemberGoal(event.target.value)} required />
                     </label>
                   </div>
@@ -639,7 +639,7 @@ function CampaignEditPanel({
             <Input min="1" type="number" value={totalpassGoal} onChange={(event) => onTotalpassGoalChange(event.target.value)} required />
           </label>
           <label className="space-y-1 text-xs font-semibold text-slate-500">
-            Meta mensalistas do box
+            Meta do plano da academia
             <Input min="1" type="number" value={boxMemberGoal} onChange={(event) => onBoxMemberGoalChange(event.target.value)} required />
           </label>
         </div>
@@ -721,7 +721,7 @@ function CampaignOperationalPanel({
             {mode === 'overview' && <><div className="grid grid-cols-2 gap-3 md:grid-cols-5">
               <Metric label="Wellhub" value={wellhub ? `${wellhub.target_checkins}` : '-'} />
               <Metric label="TotalPass" value={totalpass ? `${totalpass.target_checkins}` : '-'} />
-              <Metric label="Mensalistas" value={boxMember ? `${boxMember.target_checkins}` : '-'} />
+              <Metric label="Plano da academia" value={boxMember ? `${boxMember.target_checkins}` : '-'} />
               <Metric label="Atingiram" value={`${achieved}`} />
               <Metric label="Próximos" value={`${nearGoal}`} />
             </div>

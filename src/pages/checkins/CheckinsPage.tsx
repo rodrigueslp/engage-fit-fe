@@ -83,7 +83,7 @@ export function CheckinsPage({ canManage = true }: { canManage?: boolean }) {
     setNotice('');
     try {
       const result = await api.createManualCheckin(manualStudentId, manualDate);
-      setNotice(result.already_recorded ? 'Esse mensalista já tinha um check-in nessa data.' : 'Check-in manual registrado e campanhas recalculadas.');
+      setNotice(result.already_recorded ? 'Esse aluno já tinha um check-in nessa data.' : 'Check-in manual registrado e campanhas recalculadas.');
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível registrar o check-in.');
@@ -125,19 +125,19 @@ export function CheckinsPage({ canManage = true }: { canManage?: boolean }) {
 
       {canManage && <div className="grid gap-5 xl:grid-cols-2">
         <Card>
-          <CardHeader><h2 className="flex items-center gap-2 text-base font-bold text-slate-950"><UserCheck className="h-5 w-5 text-accent" />Check-in manual de mensalista</h2><p className="mt-1 text-sm text-slate-500">Use quando a recepção confirmar a presença. Há limite de um check-in por aluno por dia.</p></CardHeader>
+          <CardHeader><h2 className="flex items-center gap-2 text-base font-bold text-slate-950"><UserCheck className="h-5 w-5 text-accent" />Check-in manual — plano da academia</h2><p className="mt-1 text-sm text-slate-500">Use quando a recepção confirmar a presença. Há limite de um check-in por aluno por dia.</p></CardHeader>
           <CardContent>
             <form className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_160px_auto] sm:items-end" onSubmit={createManualCheckin}>
-              <label className="space-y-1 text-xs font-semibold text-slate-500">Mensalista<select className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm" value={manualStudentId} onChange={(event) => setManualStudentId(event.target.value)} required><option value="">Selecione</option>{boxMembers.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}</select></label>
+              <label className="space-y-1 text-xs font-semibold text-slate-500">Aluno<select className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm" value={manualStudentId} onChange={(event) => setManualStudentId(event.target.value)} required><option value="">Selecione</option>{boxMembers.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}</select></label>
               <label className="space-y-1 text-xs font-semibold text-slate-500">Data<Input type="date" max={localDate(new Date())} value={manualDate} onChange={(event) => setManualDate(event.target.value)} required /></label>
               <Button disabled={!manualStudentId || operation === 'manual'}>{operation === 'manual' ? 'Registrando…' : 'Registrar'}</Button>
             </form>
-            {boxMembers.length === 0 && <p className="mt-3 text-xs text-amber-700">Nenhum mensalista ativado. O aluno deve escolher “Mensalista do box” no QR de entrada e confirmar pelo WhatsApp.</p>}
+            {boxMembers.length === 0 && <p className="mt-3 text-xs text-amber-700">Nenhum aluno do plano da academia está ativado. O aluno deve escolher “Plano da academia” no QR de entrada e confirmar pelo WhatsApp.</p>}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><h2 className="flex items-center gap-2 text-base font-bold text-slate-950"><QrCode className="h-5 w-5 text-accent" />QR Code de check-in</h2><p className="mt-1 text-sm text-slate-500">Exiba na recepção. Cada código vale por 10 minutos e funciona somente para mensalistas ativados.</p></CardHeader>
+          <CardHeader><h2 className="flex items-center gap-2 text-base font-bold text-slate-950"><QrCode className="h-5 w-5 text-accent" />QR Code de check-in</h2><p className="mt-1 text-sm text-slate-500">Exiba na recepção. Cada código vale por 10 minutos e funciona somente para alunos do plano da academia já ativados.</p></CardHeader>
           <CardContent>
             {selfCheckinURL ? <div className="flex flex-col gap-4 sm:flex-row sm:items-center"><div className="w-fit rounded-xl border border-slate-200 bg-white p-3"><QRCodeSVG value={selfCheckinURL} size={160} level="M" /></div><div className="min-w-0 space-y-3"><p className="text-sm font-semibold text-slate-700">Válido até {new Date(session!.expires_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p><Button type="button" variant="secondary" disabled={operation === 'qr'} onClick={() => void createSession()}>Gerar novo QR</Button></div></div> : <Button type="button" className="w-full sm:w-auto" disabled={operation === 'qr'} onClick={() => void createSession()}><QrCode className="h-4 w-4" />{operation === 'qr' ? 'Gerando…' : 'Gerar QR de check-in'}</Button>}
           </CardContent>
@@ -184,7 +184,7 @@ export function CheckinsPage({ canManage = true }: { canManage?: boolean }) {
                 <option value="all">Todas as origens</option>
                 <option value="wellhub">Wellhub</option>
                 <option value="totalpass">TotalPass</option>
-                <option value="box_member">Mensalistas do box</option>
+                <option value="box_member">Plano da academia</option>
               </select>
               <select className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm" value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>
                 <option value="checkins_desc">Mais check-ins</option>

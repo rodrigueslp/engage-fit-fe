@@ -102,7 +102,7 @@ export function StudentsPage({ canManagePrivacy = true }: { canManagePrivacy?: b
           <div><h2 className="text-base font-bold text-slate-950">Todos os alunos</h2><p className="text-sm text-slate-500">{filtered.length} de {students.length} alunos</p></div>
           <div className="grid gap-2 sm:grid-cols-3">
             <Input placeholder="Buscar nome, e-mail ou telefone" value={search} onChange={(event) => setSearch(event.target.value)} />
-            <select className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm" value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)}><option value="all">Todas as origens</option><option value="wellhub">Wellhub</option><option value="totalpass">TotalPass</option><option value="box_member">Mensalistas do box</option></select>
+            <select className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm" value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)}><option value="all">Todas as origens</option><option value="wellhub">Wellhub</option><option value="totalpass">TotalPass</option><option value="box_member">Plano da academia</option></select>
             <select className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm" value={contactFilter} onChange={(event) => setContactFilter(event.target.value)}><option value="all">Qualquer contato</option><option value="unknown">Não informado</option><option value="opted_in">Autorizado</option><option value="opted_out">Não contatar</option></select>
           </div>
         </div>

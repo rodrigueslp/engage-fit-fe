@@ -69,7 +69,7 @@ test('new student registers on the first visit without previous check-in', async
   await page.goto(`/#/activate/${code}`);
   await expect(page.getByText('É meu primeiro treino', { exact: true })).toBeVisible();
   await page.getByLabel('Nome completo').fill('Pessoa Nova');
-  await page.getByText('Mensalista do box', { exact: true }).click();
+  await page.getByText('Plano da academia', { exact: true }).click();
   await page.getByRole('checkbox').check();
   await page.getByRole('button', { name: 'Continuar para o WhatsApp' }).click();
 

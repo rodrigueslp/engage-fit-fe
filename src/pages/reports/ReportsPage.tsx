@@ -181,7 +181,7 @@ export function ReportsPage() {
                 <option value="all">Todas as origens</option>
                 <option value="wellhub">Wellhub</option>
                 <option value="totalpass">TotalPass</option>
-                <option value="box_member">Mensalistas do box</option>
+                <option value="box_member">Plano da academia</option>
               </select>
             )}
           </div>

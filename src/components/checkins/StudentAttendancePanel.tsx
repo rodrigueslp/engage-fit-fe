@@ -84,7 +84,7 @@ export function StudentAttendancePanel({ student, onClose }: { student: StudentS
               <section>
                 <div className="flex items-end justify-between gap-3">
                   <div><h3 className="font-bold text-slate-950">Últimas oito semanas</h3><p className="text-sm text-slate-500">Cada marca representa um dia com presença.</p></div>
-                  <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-500"><Legend color="bg-emerald-500" label="Wellhub" /><Legend color="bg-sky-500" label="TotalPass" /><Legend color="bg-violet-500" label="Mensalista" /></div>
+                  <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-500"><Legend color="bg-emerald-500" label="Wellhub" /><Legend color="bg-sky-500" label="TotalPass" /><Legend color="bg-violet-500" label="Plano da academia" /></div>
                 </div>
                 <div className="mt-3 overflow-x-auto pb-2">
                   <div className="grid min-w-[620px] grid-cols-8 gap-2">

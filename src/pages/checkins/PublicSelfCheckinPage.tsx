@@ -42,7 +42,7 @@ export function PublicSelfCheckinPage({ token }: { token: string }) {
       <div className="mx-auto max-w-md">
         <div className="mb-6 text-center">
           <img src="/engagefit-logo-cropped.png" alt="EngageFit" className="mx-auto h-auto w-48" />
-          <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Check-in de mensalista</p>
+          <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Check-in — plano da academia</p>
           <h1 className="mt-2 text-3xl font-extrabold text-slate-950">{session?.box_name || 'Academia'}</h1>
         </div>
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
@@ -58,7 +58,7 @@ export function PublicSelfCheckinPage({ token }: { token: string }) {
               <label className="block text-sm font-semibold text-slate-700">Nome completo<Input className="mt-1.5" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" required minLength={3} /></label>
               <label className="block text-sm font-semibold text-slate-700">WhatsApp cadastrado<Input className="mt-1.5" value={phone} onChange={(event) => setPhone(event.target.value)} inputMode="tel" autoComplete="tel" placeholder="(11) 99999-9999" required /></label>
               <Button className="w-full" disabled={submitting}>{submitting ? 'Registrando…' : 'Confirmar presença'}</Button>
-              <p className="flex items-start gap-2 text-xs leading-5 text-slate-500"><Clock3 className="mt-0.5 h-4 w-4 shrink-0" />O QR Code expira em poucos minutos e aceita somente mensalistas já ativados no WhatsApp.</p>
+              <p className="flex items-start gap-2 text-xs leading-5 text-slate-500"><Clock3 className="mt-0.5 h-4 w-4 shrink-0" />O QR Code expira em poucos minutos e aceita somente alunos do plano da academia já ativados no WhatsApp.</p>
             </form> : null}
           </div>
         </section>

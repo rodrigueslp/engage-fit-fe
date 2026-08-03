@@ -27,12 +27,12 @@ test('owner records a box member manually and generates a short-lived QR', async
   ]);
   await page.goto('/#/checkins');
 
-  await expect(page.getByRole('heading', { name: 'Check-in manual de mensalista' })).toBeVisible();
-  await page.getByLabel('Mensalista').selectOption('member-1');
+  await expect(page.getByRole('heading', { name: 'Check-in manual — plano da academia' })).toBeVisible();
+  await page.getByLabel('Aluno').selectOption('member-1');
   await page.getByRole('button', { name: 'Registrar', exact: true }).click();
   await expect(page.getByText('Check-in manual registrado e campanhas recalculadas.')).toBeVisible();
   await expect(page.getByText('Maria Mensalista', { exact: true }).last()).toBeVisible();
-  await expect(page.getByText('Mensalista do box', { exact: true }).last()).toBeVisible();
+  await expect(page.getByText('Plano da academia', { exact: true }).last()).toBeVisible();
 
   await page.getByRole('button', { name: 'Gerar QR de check-in' }).click();
   await expect(page.getByText(/Válido até/)).toBeVisible();
