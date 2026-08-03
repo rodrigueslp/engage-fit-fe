@@ -200,6 +200,7 @@ export type ContactActivationSummary = {
   opted_in: number;
   opted_out: number;
   pending_review: number;
+  pending_sync: number;
   awaiting_message: number;
   activation_code: string;
   sender_phone: string;
@@ -215,7 +216,8 @@ export type ContactActivation = {
   recent_checkin_date?: string;
   is_new_student: boolean;
   phone?: string;
-  status: 'awaiting_message' | 'confirmed' | 'needs_review' | 'expired' | 'cancelled';
+  match_strategy?: string;
+  status: 'awaiting_message' | 'confirmed' | 'pending_sync' | 'needs_review' | 'expired' | 'cancelled';
   consented_at?: string;
   expires_at: string;
   resolved_at?: string;

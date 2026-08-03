@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Copy, Link2, MessageCircle, QrCode, RefreshCw, UserCheck, Users } from 'lucide-react';
+import { CheckCircle2, Clock3, Copy, Link2, MessageCircle, QrCode, RefreshCw, UserCheck, Users } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../../features/api/endpoints';
 import type { ContactActivation, ContactActivationStart, ContactActivationSummary, Student } from '../../features/api/types';
@@ -19,7 +19,8 @@ export function ContactActivationPage() {
   const [error, setError] = useState('');
   const publicURL = summary?.activation_code ? `${window.location.origin}${window.location.pathname}#/activate/${summary.activation_code}` : '';
   const pending = useMemo(() => activations.filter((item) => item.status === 'needs_review'), [activations]);
-  const recent = useMemo(() => activations.filter((item) => item.status !== 'needs_review').slice(0, 20), [activations]);
+  const syncing = useMemo(() => activations.filter((item) => item.status === 'pending_sync'), [activations]);
+  const recent = useMemo(() => activations.filter((item) => item.status !== 'needs_review' && item.status !== 'pending_sync').slice(0, 20), [activations]);
 
   async function load() {
     setLoading(true);
@@ -77,11 +78,12 @@ export function ContactActivationPage() {
       {loading ? <LoadingState /> : summary && (
         <>
           {!summary.whatsapp_ready && <InlineNotice tone="warning">A conexão Twilio precisa estar ativa e usar um número de telefone como remetente antes de publicar o QR Code.</InlineNotice>}
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
             <Metric label="Alunos cadastrados" value={summary.total_students} icon={Users} />
             <Metric label="Com telefone" value={summary.with_phone} icon={MessageCircle} />
             <Metric label="Autorizados" value={summary.opted_in} icon={UserCheck} />
             <Metric label="Aguardando envio" value={summary.awaiting_message} icon={Link2} />
+            <Metric label="Aguardando importação" value={summary.pending_sync} icon={Clock3} attention={summary.pending_sync > 0} />
             <Metric label="Revisar vínculo" value={summary.pending_review} icon={QrCode} attention={summary.pending_review > 0} />
           </div>
 
@@ -137,6 +139,16 @@ export function ContactActivationPage() {
             </CardContent>
           </Card>
 
+          {syncing.length > 0 && <Card>
+            <CardHeader><h2 className="font-bold text-slate-950">Aguardando importação</h2><p className="mt-1 text-sm text-slate-500">O check-in informado é mais recente que os dados recebidos. O EngageFit tentará concluir estes vínculos automaticamente após a próxima importação da plataforma.</p></CardHeader>
+            <CardContent className="space-y-3">
+              {syncing.map((item) => <div key={item.id} className="flex flex-col gap-2 rounded-xl border border-sky-200 bg-sky-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div><p className="font-bold text-slate-950">{item.claimed_name}</p><p className="text-xs text-slate-600">{item.source === 'wellhub' ? 'Wellhub' : 'TotalPass'} · presença informada {item.recent_checkin_date ? new Date(item.recent_checkin_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'não informada'} · telefone final {item.phone?.slice(-4)}</p></div>
+                <span className="inline-flex w-fit items-center gap-1 rounded-full bg-sky-100 px-2.5 py-1 text-xs font-bold text-sky-800"><Clock3 className="h-3.5 w-3.5" />Aguardando dados</span>
+              </div>)}
+            </CardContent>
+          </Card>}
+
           <Card>
             <CardHeader><h2 className="font-bold text-slate-950">Ativações recentes</h2></CardHeader>
             <CardContent className="space-y-2">
@@ -161,5 +173,5 @@ function Metric({ label, value, icon: Icon, attention = false }: { label: string
 }
 
 function statusLabel(status: ContactActivation['status']) {
-  return { awaiting_message: 'Aguardando envio', confirmed: 'Ativado', needs_review: 'Revisar', expired: 'Expirado', cancelled: 'Cancelado' }[status];
+  return { awaiting_message: 'Aguardando envio', confirmed: 'Ativado', pending_sync: 'Aguardando importação', needs_review: 'Revisar', expired: 'Expirado', cancelled: 'Cancelado' }[status];
 }
