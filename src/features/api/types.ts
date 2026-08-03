@@ -1,4 +1,4 @@
-export type Source = 'wellhub' | 'totalpass';
+export type Source = 'wellhub' | 'totalpass' | 'box_member';
 
 export type LoginResponse = {
   access_token: string;
@@ -179,6 +179,20 @@ export type StudentCheckin = {
   checkin_date: string;
   checkin_time?: string;
   source: Source;
+  entry_method: 'import' | 'manual' | 'self_service';
+};
+
+export type SelfCheckinSession = {
+  token?: string;
+  box_name?: string;
+  expires_at: string;
+};
+
+export type AttendanceCheckin = {
+  student_id: string;
+  student_name?: string;
+  checkin_date: string;
+  already_recorded: boolean;
 };
 
 export type ContactActivationConfig = {

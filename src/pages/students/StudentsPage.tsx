@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { api } from '../../features/api/endpoints';
 import type { Student } from '../../features/api/types';
+import { sourceLabel } from '../../features/students/source';
 
 const pageSize = 10;
 
@@ -93,7 +94,7 @@ export function StudentsPage({ canManagePrivacy = true }: { canManagePrivacy?: b
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Alunos" eyebrow="Base da academia" description="Consulte contatos, origem e preferências de comunicação dos alunos importados." />
+      <PageHeader title="Alunos" eyebrow="Base da academia" description="Consulte contatos, origem e preferências de comunicação de todos os alunos." />
       {error && <ErrorState message={error} />}
       <Card>
       <CardHeader>
@@ -101,7 +102,7 @@ export function StudentsPage({ canManagePrivacy = true }: { canManagePrivacy?: b
           <div><h2 className="text-base font-bold text-slate-950">Todos os alunos</h2><p className="text-sm text-slate-500">{filtered.length} de {students.length} alunos</p></div>
           <div className="grid gap-2 sm:grid-cols-3">
             <Input placeholder="Buscar nome, e-mail ou telefone" value={search} onChange={(event) => setSearch(event.target.value)} />
-            <select className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm" value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)}><option value="all">Todas as plataformas</option><option value="wellhub">Wellhub</option><option value="totalpass">TotalPass</option></select>
+            <select className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm" value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)}><option value="all">Todas as origens</option><option value="wellhub">Wellhub</option><option value="totalpass">TotalPass</option><option value="box_member">Mensalistas do box</option></select>
             <select className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm" value={contactFilter} onChange={(event) => setContactFilter(event.target.value)}><option value="all">Qualquer contato</option><option value="unknown">Não informado</option><option value="opted_in">Autorizado</option><option value="opted_out">Não contatar</option></select>
           </div>
         </div>
@@ -116,7 +117,7 @@ export function StudentsPage({ canManagePrivacy = true }: { canManagePrivacy?: b
           <div className="divide-y divide-slate-100 md:hidden">
             {visibleStudents.map((student) => (
               <div key={student.id} className="space-y-3 p-4">
-                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-bold text-slate-950">{student.name}</p><p className="truncate text-sm text-slate-500">{student.email || student.phone || 'Sem contato cadastrado'}</p></div><StatusBadge value={student.source} label={student.source} /></div>
+                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-bold text-slate-950">{student.name}</p><p className="truncate text-sm text-slate-500">{student.email || student.phone || 'Sem contato cadastrado'}</p></div><StatusBadge value={student.source} label={sourceLabel(student.source)} /></div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <label className="text-xs font-semibold text-slate-500">Preferência de contato<select className="mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-800" value={student.contact_status || 'unknown'} disabled={!canManagePrivacy || processingId === student.id || Boolean(student.anonymized_at)} onChange={(event) => void updateContact(student, event.target.value as Student['contact_status'])}><option value="unknown">Não informado</option><option value="opted_in">Autorizado</option><option value="opted_out">Não contatar</option></select></label>
                   {canManagePrivacy && <StudentPrivacyActions student={student} processing={processingId === student.id} onExport={exportData} onAnonymize={anonymize} />}
@@ -142,7 +143,7 @@ export function StudentsPage({ canManagePrivacy = true }: { canManagePrivacy?: b
                     <td className="px-5 py-3 font-semibold text-slate-950">{student.name}</td>
                     <td className="text-slate-600">{student.email}</td>
                     <td className="text-slate-600">{student.phone}</td>
-                    <td><StatusBadge value={student.source} label={student.source} /></td>
+                    <td><StatusBadge value={student.source} label={sourceLabel(student.source)} /></td>
                     <td>
                       <select
                         className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm"

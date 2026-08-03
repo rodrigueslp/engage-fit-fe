@@ -1,5 +1,6 @@
-import { Activity, CalendarDays, Gauge, Users } from 'lucide-react';
+import { Activity, CalendarDays, Gauge, QrCode, UserCheck, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -7,14 +8,15 @@ import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { api } from '../../features/api/endpoints';
-import type { MonthlyFrequencyReport, Source } from '../../features/api/types';
+import type { MonthlyFrequencyReport, SelfCheckinSession, Source, Student } from '../../features/api/types';
 import { StudentAttendancePanel } from '../../components/checkins/StudentAttendancePanel';
+import { sourceLabel } from '../../features/students/source';
 
 const pageSize = 10;
 
 type SortKey = 'checkins_desc' | 'name_asc' | 'recent_desc';
 
-export function CheckinsPage() {
+export function CheckinsPage({ canManage = true }: { canManage?: boolean }) {
   const initialPeriod = currentMonthPeriod();
   const [startDate, setStartDate] = useState(initialPeriod.start);
   const [endDate, setEndDate] = useState(initialPeriod.end);
@@ -27,6 +29,13 @@ export function CheckinsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<MonthlyFrequencyReport>();
+  const [boxMembers, setBoxMembers] = useState<Student[]>([]);
+  const [manualStudentId, setManualStudentId] = useState('');
+  const [manualDate, setManualDate] = useState(localDate(new Date()));
+  const [session, setSession] = useState<SelfCheckinSession>();
+  const [operation, setOperation] = useState('');
+  const [notice, setNotice] = useState('');
+  const selfCheckinURL = session?.token ? `${window.location.origin}${window.location.pathname}#/checkin/${session.token}` : '';
 
   async function load() {
     if (!startDate || !endDate || endDate < startDate) {
@@ -48,7 +57,40 @@ export function CheckinsPage() {
 
   useEffect(() => {
     void load();
+    if (canManage) {
+      api.students().then((items) => setBoxMembers(items.filter((student) => student.source === 'box_member' && !student.anonymized_at))).catch(() => undefined);
+    }
   }, []);
+
+  async function createSession() {
+    setOperation('qr');
+    setError('');
+    setNotice('');
+    try {
+      setSession(await api.createSelfCheckinSession());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível gerar o QR Code.');
+    } finally {
+      setOperation('');
+    }
+  }
+
+  async function createManualCheckin(event: React.FormEvent) {
+    event.preventDefault();
+    if (!manualStudentId) return;
+    setOperation('manual');
+    setError('');
+    setNotice('');
+    try {
+      const result = await api.createManualCheckin(manualStudentId, manualDate);
+      setNotice(result.already_recorded ? 'Esse mensalista já tinha um check-in nessa data.' : 'Check-in manual registrado e campanhas recalculadas.');
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível registrar o check-in.');
+    } finally {
+      setOperation('');
+    }
+  }
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -79,6 +121,28 @@ export function CheckinsPage() {
       />
 
       {error && <ErrorState message={error} />}
+      {notice && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">{notice}</div>}
+
+      {canManage && <div className="grid gap-5 xl:grid-cols-2">
+        <Card>
+          <CardHeader><h2 className="flex items-center gap-2 text-base font-bold text-slate-950"><UserCheck className="h-5 w-5 text-accent" />Check-in manual de mensalista</h2><p className="mt-1 text-sm text-slate-500">Use quando a recepção confirmar a presença. Há limite de um check-in por aluno por dia.</p></CardHeader>
+          <CardContent>
+            <form className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_160px_auto] sm:items-end" onSubmit={createManualCheckin}>
+              <label className="space-y-1 text-xs font-semibold text-slate-500">Mensalista<select className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm" value={manualStudentId} onChange={(event) => setManualStudentId(event.target.value)} required><option value="">Selecione</option>{boxMembers.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}</select></label>
+              <label className="space-y-1 text-xs font-semibold text-slate-500">Data<Input type="date" max={localDate(new Date())} value={manualDate} onChange={(event) => setManualDate(event.target.value)} required /></label>
+              <Button disabled={!manualStudentId || operation === 'manual'}>{operation === 'manual' ? 'Registrando…' : 'Registrar'}</Button>
+            </form>
+            {boxMembers.length === 0 && <p className="mt-3 text-xs text-amber-700">Nenhum mensalista ativado. O aluno deve escolher “Mensalista do box” no QR de entrada e confirmar pelo WhatsApp.</p>}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><h2 className="flex items-center gap-2 text-base font-bold text-slate-950"><QrCode className="h-5 w-5 text-accent" />QR Code de check-in</h2><p className="mt-1 text-sm text-slate-500">Exiba na recepção. Cada código vale por 10 minutos e funciona somente para mensalistas ativados.</p></CardHeader>
+          <CardContent>
+            {selfCheckinURL ? <div className="flex flex-col gap-4 sm:flex-row sm:items-center"><div className="w-fit rounded-xl border border-slate-200 bg-white p-3"><QRCodeSVG value={selfCheckinURL} size={160} level="M" /></div><div className="min-w-0 space-y-3"><p className="text-sm font-semibold text-slate-700">Válido até {new Date(session!.expires_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p><Button type="button" variant="secondary" disabled={operation === 'qr'} onClick={() => void createSession()}>Gerar novo QR</Button></div></div> : <Button type="button" className="w-full sm:w-auto" disabled={operation === 'qr'} onClick={() => void createSession()}><QrCode className="h-4 w-4" />{operation === 'qr' ? 'Gerando…' : 'Gerar QR de check-in'}</Button>}
+          </CardContent>
+        </Card>
+      </div>}
 
       <Card>
         <CardHeader>
@@ -117,9 +181,10 @@ export function CheckinsPage() {
             <div className="grid gap-2 sm:grid-cols-3">
               <Input placeholder="Buscar nome ou telefone" value={search} onChange={(event) => setSearch(event.target.value)} />
               <select className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm" value={source} onChange={(event) => setSource(event.target.value as 'all' | Source)}>
-                <option value="all">Todas as plataformas</option>
+                <option value="all">Todas as origens</option>
                 <option value="wellhub">Wellhub</option>
                 <option value="totalpass">TotalPass</option>
+                <option value="box_member">Mensalistas do box</option>
               </select>
               <select className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm" value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>
                 <option value="checkins_desc">Mais check-ins</option>
@@ -141,7 +206,7 @@ export function CheckinsPage() {
                   <div key={row.student_id} className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0"><p className="font-bold text-slate-950">{row.student_name}</p><p className="mt-0.5 text-xs text-slate-500">{row.student_phone || 'Sem telefone'}</p></div>
-                      <StatusBadge value={row.source} label={row.source} />
+                      <StatusBadge value={row.source} label={sourceLabel(row.source)} />
                     </div>
                     <div className="mt-3 grid grid-cols-[auto_1fr] gap-4 rounded-lg bg-slate-50 p-3">
                       <div><p className="text-xs text-slate-500">Check-ins</p><p className="text-xl font-bold text-slate-950">{row.checkins}</p></div>
@@ -154,7 +219,7 @@ export function CheckinsPage() {
               <div className="hidden overflow-x-auto md:block">
               <div className="grid min-w-[900px] grid-cols-[1.5fr_120px_90px_120px_120px_150px] border-b border-slate-100 px-5 py-3 text-xs font-bold uppercase text-slate-500">
                 <span>Aluno</span>
-                <span>Plataforma</span>
+                <span>Origem</span>
                 <span>Check-ins</span>
                 <span>Primeiro</span>
                 <span>Último</span>
@@ -166,7 +231,7 @@ export function CheckinsPage() {
                     <p className="font-semibold text-slate-950">{row.student_name}</p>
                     <p className="mt-1 text-xs text-slate-400">{row.student_phone || 'Sem telefone'}</p>
                   </div>
-                  <div><StatusBadge value={row.source} label={row.source} /></div>
+                  <div><StatusBadge value={row.source} label={sourceLabel(row.source)} /></div>
                   <span className="text-sm font-bold text-slate-700">{row.checkins}</span>
                   <span className="text-sm text-slate-600">{formatDate(row.first_checkin)}</span>
                   <span className="text-sm text-slate-600">{formatDate(row.last_checkin)}</span>

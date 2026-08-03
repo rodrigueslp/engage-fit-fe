@@ -55,6 +55,8 @@ import type {
   ContactActivationConfig,
   ContactActivationStart,
   ContactActivationSummary,
+  SelfCheckinSession,
+  AttendanceCheckin,
 } from './types';
 
 export type MessagingPolicyPayload = Omit<MessagingPolicy, 'id' | 'scope' | 'box_id' | 'updated_at'> & { reason: string };
@@ -137,6 +139,10 @@ export const api = {
       method: 'POST', body: JSON.stringify({ student_id: studentId }),
     }),
   studentCheckins: (studentId: string) => apiRequest<StudentCheckin[]>(`/api/v1/students/${studentId}/checkins`),
+  createSelfCheckinSession: () => apiRequest<SelfCheckinSession>('/api/v1/self-checkin-sessions', { method: 'POST' }),
+  publicSelfCheckinSession: (token: string) => apiRequest<SelfCheckinSession>(`/api/v1/public/self-checkin/${encodeURIComponent(token)}`, { auth: false }),
+  selfCheckin: (token: string, payload: { name: string; phone: string }) => apiRequest<AttendanceCheckin>(`/api/v1/public/self-checkin/${encodeURIComponent(token)}`, { method: 'POST', auth: false, body: JSON.stringify(payload) }),
+  createManualCheckin: (studentId: string, date: string) => apiRequest<AttendanceCheckin>(`/api/v1/students/${studentId}/checkins/manual`, { method: 'POST', body: JSON.stringify({ date }) }),
   updateStudentRiskStatus: (studentId: string, riskStatus: NonNullable<Student['risk_status']>) =>
     apiRequest<void>(`/api/v1/students/${studentId}/risk-status`, {
       method: 'PATCH',

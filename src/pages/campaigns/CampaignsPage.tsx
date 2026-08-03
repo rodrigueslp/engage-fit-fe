@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { api } from '../../features/api/endpoints';
-import type { Campaign, CampaignGoal, CampaignProgress, Reward } from '../../features/api/types';
+import type { Campaign, CampaignGoal, CampaignProgress, Reward, Source } from '../../features/api/types';
+import { sourceLabel } from '../../features/students/source';
 
 type CampaignDetails = {
   goals: CampaignGoal[];
@@ -38,6 +39,7 @@ export function CampaignsPage() {
   const [endDate, setEndDate] = useState('');
   const [wellhubGoal, setWellhubGoal] = useState('12');
   const [totalpassGoal, setTotalpassGoal] = useState('12');
+  const [boxMemberGoal, setBoxMemberGoal] = useState('12');
   const [rewardName, setRewardName] = useState('');
   const [rewardDescription, setRewardDescription] = useState('');
   const [rewardQuantity, setRewardQuantity] = useState('100');
@@ -47,6 +49,7 @@ export function CampaignsPage() {
   const [editEndDate, setEditEndDate] = useState('');
   const [editWellhubGoal, setEditWellhubGoal] = useState('12');
   const [editTotalpassGoal, setEditTotalpassGoal] = useState('12');
+  const [editBoxMemberGoal, setEditBoxMemberGoal] = useState('12');
   const [editRewardName, setEditRewardName] = useState('');
   const [editRewardDescription, setEditRewardDescription] = useState('');
   const [editRewardQuantity, setEditRewardQuantity] = useState('100');
@@ -109,9 +112,11 @@ export function CampaignsPage() {
   useEffect(() => {
     const wellhub = details.goals.find((goal) => goal.source === 'wellhub');
     const totalpass = details.goals.find((goal) => goal.source === 'totalpass');
+    const boxMember = details.goals.find((goal) => goal.source === 'box_member');
     const reward = details.rewards[0];
     setEditWellhubGoal(String(wellhub?.target_checkins ?? 12));
     setEditTotalpassGoal(String(totalpass?.target_checkins ?? 12));
+    setEditBoxMemberGoal(String(boxMember?.target_checkins ?? 12));
     setEditRewardName(reward?.name ?? '');
     setEditRewardDescription(reward?.description ?? '');
     setEditRewardQuantity(String(reward?.quantity ?? 100));
@@ -126,6 +131,7 @@ export function CampaignsPage() {
       await Promise.all([
         api.createCampaignGoal(campaign.id, { source: 'wellhub', target_checkins: Number(wellhubGoal) }),
         api.createCampaignGoal(campaign.id, { source: 'totalpass', target_checkins: Number(totalpassGoal) }),
+        api.createCampaignGoal(campaign.id, { source: 'box_member', target_checkins: Number(boxMemberGoal) }),
         api.createReward(campaign.id, { name: rewardName, description: rewardDescription, quantity: Number(rewardQuantity) }),
       ]);
       setName('');
@@ -134,6 +140,7 @@ export function CampaignsPage() {
       setEndDate('');
       setWellhubGoal('12');
       setTotalpassGoal('12');
+      setBoxMemberGoal('12');
       setRewardName('');
       setRewardDescription('');
       setRewardQuantity('100');
@@ -190,6 +197,7 @@ export function CampaignsPage() {
       await Promise.all([
         upsertGoal(selectedCampaign.id, 'wellhub', Number(editWellhubGoal)),
         upsertGoal(selectedCampaign.id, 'totalpass', Number(editTotalpassGoal)),
+        upsertGoal(selectedCampaign.id, 'box_member', Number(editBoxMemberGoal)),
       ]);
       loadDetails(selectedCampaign.id);
     } catch (err) {
@@ -199,7 +207,7 @@ export function CampaignsPage() {
     }
   }
 
-  async function upsertGoal(campaignId: string, source: 'wellhub' | 'totalpass', targetCheckins: number) {
+  async function upsertGoal(campaignId: string, source: Source, targetCheckins: number) {
     const existing = details.goals.find((goal) => goal.source === source);
     if (existing) {
       return api.updateCampaignGoal(campaignId, existing.id, { source, target_checkins: targetCheckins });
@@ -243,6 +251,7 @@ export function CampaignsPage() {
       await Promise.all([
         upsertGoal(selectedCampaign.id, 'wellhub', Number(editWellhubGoal)),
         upsertGoal(selectedCampaign.id, 'totalpass', Number(editTotalpassGoal)),
+        upsertGoal(selectedCampaign.id, 'box_member', Number(editBoxMemberGoal)),
       ]);
       const rewardPayload = { name: editRewardName, description: editRewardDescription, quantity: Number(editRewardQuantity) };
       if (details.rewards[0]) await api.updateReward(details.rewards[0].id, rewardPayload);
@@ -340,7 +349,7 @@ export function CampaignsPage() {
                 <div className="space-y-3">
                   <Input placeholder="Nome da campanha" value={name} onChange={(event) => setName(event.target.value)} required />
                   <Textarea placeholder="Descrição" value={description} onChange={(event) => setDescription(event.target.value)} />
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-3 sm:grid-cols-3">
                     <Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} required />
                     <Input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} required />
                   </div>
@@ -359,6 +368,10 @@ export function CampaignsPage() {
                     <label className="space-y-1 text-xs font-semibold text-slate-500">
                       TotalPass
                       <Input min="1" type="number" value={totalpassGoal} onChange={(event) => setTotalpassGoal(event.target.value)} required />
+                    </label>
+                    <label className="space-y-1 text-xs font-semibold text-slate-500">
+                      Mensalistas do box
+                      <Input min="1" type="number" value={boxMemberGoal} onChange={(event) => setBoxMemberGoal(event.target.value)} required />
                     </label>
                   </div>
                 </div>
@@ -491,6 +504,7 @@ export function CampaignsPage() {
               endDate={editEndDate}
               wellhubGoal={editWellhubGoal}
               totalpassGoal={editTotalpassGoal}
+              boxMemberGoal={editBoxMemberGoal}
               rewardName={editRewardName}
               rewardDescription={editRewardDescription}
               rewardQuantity={editRewardQuantity}
@@ -500,6 +514,7 @@ export function CampaignsPage() {
               onEndDateChange={setEditEndDate}
               onWellhubGoalChange={setEditWellhubGoal}
               onTotalpassGoalChange={setEditTotalpassGoal}
+              onBoxMemberGoalChange={setEditBoxMemberGoal}
               onRewardNameChange={setEditRewardName}
               onRewardDescriptionChange={setEditRewardDescription}
               onRewardQuantityChange={setEditRewardQuantity}
@@ -539,6 +554,7 @@ function CampaignEditPanel({
   endDate,
   wellhubGoal,
   totalpassGoal,
+  boxMemberGoal,
   rewardName,
   rewardDescription,
   rewardQuantity,
@@ -548,6 +564,7 @@ function CampaignEditPanel({
   onEndDateChange,
   onWellhubGoalChange,
   onTotalpassGoalChange,
+  onBoxMemberGoalChange,
   onRewardNameChange,
   onRewardDescriptionChange,
   onRewardQuantityChange,
@@ -562,6 +579,7 @@ function CampaignEditPanel({
   endDate: string;
   wellhubGoal: string;
   totalpassGoal: string;
+  boxMemberGoal: string;
   rewardName: string;
   rewardDescription: string;
   rewardQuantity: string;
@@ -571,6 +589,7 @@ function CampaignEditPanel({
   onEndDateChange: (value: string) => void;
   onWellhubGoalChange: (value: string) => void;
   onTotalpassGoalChange: (value: string) => void;
+  onBoxMemberGoalChange: (value: string) => void;
   onRewardNameChange: (value: string) => void;
   onRewardDescriptionChange: (value: string) => void;
   onRewardQuantityChange: (value: string) => void;
@@ -610,7 +629,7 @@ function CampaignEditPanel({
           <Input type="date" value={endDate} onChange={(event) => onEndDateChange(event.target.value)} required />
         </div>
 
-        <div className="grid gap-3 border-t border-slate-100 pt-5 sm:grid-cols-2">
+        <div className="grid gap-3 border-t border-slate-100 pt-5 sm:grid-cols-3">
           <label className="space-y-1 text-xs font-semibold text-slate-500">
             Meta Wellhub
             <Input min="1" type="number" value={wellhubGoal} onChange={(event) => onWellhubGoalChange(event.target.value)} required />
@@ -618,6 +637,10 @@ function CampaignEditPanel({
           <label className="space-y-1 text-xs font-semibold text-slate-500">
             Meta TotalPass
             <Input min="1" type="number" value={totalpassGoal} onChange={(event) => onTotalpassGoalChange(event.target.value)} required />
+          </label>
+          <label className="space-y-1 text-xs font-semibold text-slate-500">
+            Meta mensalistas do box
+            <Input min="1" type="number" value={boxMemberGoal} onChange={(event) => onBoxMemberGoalChange(event.target.value)} required />
           </label>
         </div>
 
@@ -674,6 +697,7 @@ function CampaignOperationalPanel({
 
   const wellhub = details.goals.find((goal) => goal.source === 'wellhub');
   const totalpass = details.goals.find((goal) => goal.source === 'totalpass');
+  const boxMember = details.goals.find((goal) => goal.source === 'box_member');
 
   return (
     <Card>
@@ -694,9 +718,10 @@ function CampaignOperationalPanel({
           <LoadingState />
         ) : (
           <div className="space-y-5">
-            {mode === 'overview' && <><div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {mode === 'overview' && <><div className="grid grid-cols-2 gap-3 md:grid-cols-5">
               <Metric label="Wellhub" value={wellhub ? `${wellhub.target_checkins}` : '-'} />
               <Metric label="TotalPass" value={totalpass ? `${totalpass.target_checkins}` : '-'} />
+              <Metric label="Mensalistas" value={boxMember ? `${boxMember.target_checkins}` : '-'} />
               <Metric label="Atingiram" value={`${achieved}`} />
               <Metric label="Próximos" value={`${nearGoal}`} />
             </div>
@@ -760,7 +785,7 @@ function CampaignOperationalPanel({
                   <div key={item.id} className="border-b border-slate-100 p-4 last:border-b-0 md:grid md:grid-cols-[1fr_120px_110px_120px] md:items-center md:p-0 md:px-4 md:py-3">
                     <div>
                       <p className="text-sm font-semibold text-slate-950">{item.student_name ?? item.student_id}</p>
-                      <p className="text-xs font-semibold text-slate-500">{item.student_source ?? 'plataforma'}</p>
+                      <p className="text-xs font-semibold text-slate-500">{item.student_source ? sourceLabel(item.student_source) : 'Origem não informada'}</p>
                     </div>
                     <div className="mt-3 flex items-center justify-between gap-2 md:contents">
                       <span className="text-sm font-bold text-slate-700"><span className="font-normal text-slate-500 md:hidden">Check-ins: </span>{item.current_checkins}/{item.target_checkins}</span>

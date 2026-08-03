@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { api } from '../../features/api/endpoints';
 import type { EligibleStudentReport, MonthlyFrequencyReport, RewardDelivery } from '../../features/api/types';
+import { sourceLabel } from '../../features/students/source';
 
 type ReportKey = 'eligible' | 'pending_rewards' | 'monthly_frequency';
 
@@ -177,9 +178,10 @@ export function ReportsPage() {
                 value={sourceFilter}
                 onChange={(event) => setSourceFilter(event.target.value)}
               >
-                <option value="all">Todas as plataformas</option>
+                <option value="all">Todas as origens</option>
                 <option value="wellhub">Wellhub</option>
                 <option value="totalpass">TotalPass</option>
+                <option value="box_member">Mensalistas do box</option>
               </select>
             )}
           </div>
@@ -221,7 +223,7 @@ function EligibleStudentsTable({ rows }: { rows: EligibleStudentReport[] }) {
             <p className="font-semibold text-slate-950">{row.student_name}</p>
             <p className="mt-1 text-xs text-slate-400">{row.student_phone || 'Sem telefone'}</p>
           </div>
-          <div><StatusBadge value={row.source} label={row.source} /></div>
+          <div><StatusBadge value={row.source} label={sourceLabel(row.source)} /></div>
           <span className="text-sm font-bold text-slate-700"><span className="font-normal text-slate-500 md:hidden">Check-ins: </span>{row.current_checkins}/{row.target_checkins}</span>
           <span className="text-sm text-slate-600"><span className="text-slate-500 md:hidden">Brinde: </span>{row.reward_name || '-'}</span>
         </div>
@@ -274,7 +276,7 @@ function MonthlyFrequencyTable({ rows }: { rows: MonthlyFrequencyReport[] }) {
             <p className="font-semibold text-slate-950">{row.student_name}</p>
             <p className="mt-1 text-xs text-slate-400">{row.student_phone || 'Sem telefone'}</p>
           </div>
-          <div><StatusBadge value={row.source} label={row.source} /></div>
+          <div><StatusBadge value={row.source} label={sourceLabel(row.source)} /></div>
           <span className="text-sm font-semibold text-slate-700"><span className="font-normal text-slate-500 md:hidden">Check-ins: </span>{row.checkins}</span>
           <span className="text-sm text-slate-600"><span className="text-slate-500 md:hidden">Primeiro: </span>{formatDate(row.first_checkin)}</span>
           <span className="text-sm text-slate-600"><span className="text-slate-500 md:hidden">Último: </span>{formatDate(row.last_checkin)}</span>
@@ -288,7 +290,7 @@ function reportExportData(report: ReportKey, month: string, eligibleRows: Eligib
   if (report === 'eligible') {
     return {
       filename: 'relatório-elegíveis.csv',
-      headers: ['campanha', 'aluno', 'telefone', 'plataforma', 'checkins', 'meta', 'faltam', 'progresso', 'brinde'],
+      headers: ['campanha', 'aluno', 'telefone', 'origem', 'checkins', 'meta', 'faltam', 'progresso', 'brinde'],
       rows: eligibleRows.map((row) => [
         row.campaign_name,
         row.student_name,
@@ -317,7 +319,7 @@ function reportExportData(report: ReportKey, month: string, eligibleRows: Eligib
   }
   return {
     filename: `relatório-frequência-${month}.csv`,
-    headers: ['aluno', 'telefone', 'plataforma', 'checkins', 'primeiro_checkin', 'ultimo_checkin'],
+    headers: ['aluno', 'telefone', 'origem', 'checkins', 'primeiro_checkin', 'ultimo_checkin'],
     rows: frequencyRows.map((row) => [
       row.student_name,
       row.student_phone,
@@ -352,7 +354,7 @@ function matchesSelect(value: string | undefined, selected: string) {
 function filterPlaceholder(report: ReportKey) {
   if (report === 'eligible') return 'Buscar campanha, aluno, telefone ou brinde';
   if (report === 'pending_rewards') return 'Buscar campanha, aluno, telefone ou brinde';
-  return 'Buscar aluno, telefone ou plataforma';
+  return 'Buscar aluno, telefone ou origem';
 }
 
 function downloadCSV(filename: string, headers: string[], rows: string[][]) {

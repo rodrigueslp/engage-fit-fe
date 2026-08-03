@@ -4,6 +4,7 @@ import { api } from '../../features/api/endpoints';
 import type { Source, StudentCheckin } from '../../features/api/types';
 import { EmptyState, ErrorState, LoadingState } from '../common/State';
 import { Button } from '../ui/button';
+import { sourceLabel } from '../../features/students/source';
 
 type StudentSummary = {
   id: string;
@@ -71,7 +72,7 @@ export function StudentAttendancePanel({ student, onClose }: { student: StudentS
           <div>
             <p className="text-xs font-bold uppercase tracking-wide text-accent">Histórico de frequência</p>
             <h2 className="mt-1 text-xl font-bold text-slate-950">{student.name}</h2>
-            <p className="mt-1 text-sm text-slate-500">{student.source === 'wellhub' ? 'Wellhub' : 'TotalPass'} · {student.phone || 'Sem telefone'}</p>
+            <p className="mt-1 text-sm text-slate-500">{sourceLabel(student.source)} · {student.phone || 'Sem telefone'}</p>
           </div>
           <button type="button" className="rounded-md p-2 text-slate-500 hover:bg-slate-100" onClick={onClose} aria-label="Fechar"><X className="h-5 w-5" /></button>
         </header>
@@ -83,7 +84,7 @@ export function StudentAttendancePanel({ student, onClose }: { student: StudentS
               <section>
                 <div className="flex items-end justify-between gap-3">
                   <div><h3 className="font-bold text-slate-950">Últimas oito semanas</h3><p className="text-sm text-slate-500">Cada marca representa um dia com presença.</p></div>
-                  <div className="flex items-center gap-3 text-xs font-semibold text-slate-500"><Legend color="bg-emerald-500" label="Wellhub" /><Legend color="bg-sky-500" label="TotalPass" /></div>
+                  <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-500"><Legend color="bg-emerald-500" label="Wellhub" /><Legend color="bg-sky-500" label="TotalPass" /><Legend color="bg-violet-500" label="Mensalista" /></div>
                 </div>
                 <div className="mt-3 overflow-x-auto pb-2">
                   <div className="grid min-w-[620px] grid-cols-8 gap-2">
@@ -121,7 +122,7 @@ export function StudentAttendancePanel({ student, onClose }: { student: StudentS
                       return (
                         <button key={key} type="button" onClick={() => entries.length && setSelectedDate(key)} className={`relative flex min-h-14 flex-col items-center rounded-lg p-1.5 text-xs transition ${selected ? 'bg-slate-950 text-white' : inMonth ? 'text-slate-700 hover:bg-slate-50' : 'text-slate-300'} ${entries.length ? 'font-bold' : ''}`}>
                           <span>{day.getDate()}</span>
-                          {entries.length > 0 && <span className="mt-1 flex items-center gap-1">{sources(entries).map((source) => <span key={source} className={`h-2 w-2 rounded-full ${source === 'wellhub' ? 'bg-emerald-500' : 'bg-sky-500'}`} />)}{entries.length > 1 && <span className={`text-[9px] ${selected ? 'text-white' : 'text-slate-500'}`}>{entries.length}</span>}</span>}
+                          {entries.length > 0 && <span className="mt-1 flex items-center gap-1">{sources(entries).map((source) => <span key={source} className={`h-2 w-2 rounded-full ${sourceColor(source)}`} />)}{entries.length > 1 && <span className={`text-[9px] ${selected ? 'text-white' : 'text-slate-500'}`}>{entries.length}</span>}</span>}
                         </button>
                       );
                     })}
@@ -132,7 +133,7 @@ export function StudentAttendancePanel({ student, onClose }: { student: StudentS
                   <h3 className="font-bold text-slate-950">{selectedDate ? formatDate(selectedDate) : 'Selecione um dia'}</h3>
                   <p className="mt-1 text-xs text-slate-500">{selectedDate ? `${selectedCheckins.length} check-in${selectedCheckins.length === 1 ? '' : 's'}` : 'Clique em uma data marcada no calendário.'}</p>
                   <div className="mt-4 space-y-2">
-                    {selectedCheckins.map((checkin) => <div key={checkin.id} className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><div className="flex items-center justify-between gap-2"><span className="text-sm font-bold text-slate-800">{checkin.checkin_time?.slice(0, 5) || 'Horário não informado'}</span><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${checkin.source === 'wellhub' ? 'bg-emerald-50 text-emerald-700' : 'bg-sky-50 text-sky-700'}`}>{checkin.source === 'wellhub' ? 'Wellhub' : 'TotalPass'}</span></div></div>)}
+                    {selectedCheckins.map((checkin) => <div key={checkin.id} className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><div className="flex items-center justify-between gap-2"><div><span className="text-sm font-bold text-slate-800">{checkin.checkin_time?.slice(0, 5) || 'Horário não informado'}</span><p className="mt-0.5 text-[10px] text-slate-500">{entryMethodLabel(checkin.entry_method)}</p></div><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${sourcePill(checkin.source)}`}>{sourceLabel(checkin.source)}</span></div></div>)}
                   </div>
                 </div>
               </section>
@@ -166,10 +167,23 @@ function sources(entries: StudentCheckin[]) {
 
 function dayTone(entries: StudentCheckin[]) {
   const values = sources(entries);
-  if (values.length === 2) return 'bg-gradient-to-br from-emerald-400 to-sky-500 text-white';
+  if (values.length > 1) return 'bg-gradient-to-br from-emerald-400 via-sky-500 to-violet-500 text-white';
   if (values[0] === 'wellhub') return 'bg-emerald-500 text-white';
   if (values[0] === 'totalpass') return 'bg-sky-500 text-white';
+  if (values[0] === 'box_member') return 'bg-violet-500 text-white';
   return 'bg-slate-100 text-transparent';
+}
+
+function sourceColor(source: Source) {
+  return source === 'wellhub' ? 'bg-emerald-500' : source === 'totalpass' ? 'bg-sky-500' : 'bg-violet-500';
+}
+
+function sourcePill(source: Source) {
+  return source === 'wellhub' ? 'bg-emerald-50 text-emerald-700' : source === 'totalpass' ? 'bg-sky-50 text-sky-700' : 'bg-violet-50 text-violet-700';
+}
+
+function entryMethodLabel(method: StudentCheckin['entry_method']) {
+  return method === 'manual' ? 'Registrado pela recepção' : method === 'self_service' ? 'QR Code na academia' : 'Importado';
 }
 
 function selectDay(value: string, setMonth: (value: Date) => void, setSelectedDate: (value: string) => void) {

@@ -5,6 +5,7 @@ import type { ContactActivationConfig, ContactActivationStart, Source } from '..
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { ErrorState, LoadingState } from '../../components/common/State';
+import { sourceLabel, sources } from '../../features/students/source';
 
 export function PublicContactActivationPage({ code }: { code: string }) {
   const [config, setConfig] = useState<ContactActivationConfig>();
@@ -101,29 +102,29 @@ export function PublicContactActivationPage({ code }: { code: string }) {
                 </div>
               </fieldset>
               <label className="block text-sm font-semibold text-slate-700">Nome completo
-                <Input className="mt-1.5" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Como aparece no Wellhub ou TotalPass" required minLength={3} />
+                <Input className="mt-1.5" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Como aparece no cadastro da academia" required minLength={3} />
               </label>
               <fieldset>
-                <legend className="text-sm font-semibold text-slate-700">Sua plataforma</legend>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  {(['wellhub', 'totalpass'] as Source[]).map((item) => (
+                <legend className="text-sm font-semibold text-slate-700">Como você treina na academia?</legend>
+                <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                  {sources.map((item: Source) => (
                     <label key={item} className={`cursor-pointer rounded-lg border p-3 text-center text-sm font-bold transition ${source === item ? 'border-orange-500 bg-orange-50 text-orange-800 shadow-sm' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
                       <input className="sr-only" type="radio" name="source" value={item} checked={source === item} onChange={() => setSource(item)} />
-                      {item === 'wellhub' ? 'Wellhub' : 'TotalPass'}
+                      {sourceLabel(item)}
                     </label>
                   ))}
                 </div>
               </fieldset>
               {!isNewStudent && <label className="block text-sm font-semibold text-slate-700">Data de um check-in recente
                 <Input className="mt-1.5" type="date" value={checkinDate} onChange={(event) => setCheckinDate(event.target.value)} required max={new Date().toISOString().slice(0, 10)} />
-                <span className="mt-1.5 block text-xs font-normal leading-5 text-slate-500">Pode ser a presença de hoje ou outra data que você consulte no aplicativo.</span>
+                <span className="mt-1.5 block text-xs font-normal leading-5 text-slate-500">Pode ser a presença de hoje ou outra data registrada pela academia ou pela sua plataforma.</span>
               </label>}
               <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <input className="mt-1 h-4 w-4 accent-orange-600" type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} required />
                 <span className="text-xs leading-5 text-slate-700">{config.consent_text}</span>
               </label>
               <Button className="w-full" type="submit" disabled={submitting || !accepted}>{submitting ? 'Preparando…' : 'Continuar para o WhatsApp'}</Button>
-              <div className="flex items-start gap-2 text-xs leading-5 text-slate-500"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-orange-700" />Seu telefone não vem do Wellhub ou TotalPass. Ele será recebido somente quando você enviar a confirmação pelo WhatsApp.</div>
+              <div className="flex items-start gap-2 text-xs leading-5 text-slate-500"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-orange-700" />Seu telefone será recebido somente quando você enviar a confirmação pelo WhatsApp.</div>
             </form>
           ) : null}
           </div>

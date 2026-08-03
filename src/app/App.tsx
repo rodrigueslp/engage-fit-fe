@@ -23,6 +23,7 @@ import { RetentionPage } from '../pages/retention/RetentionPage';
 import { TeamPage } from '../pages/team/TeamPage';
 import { ContactActivationPage } from '../pages/activation/ContactActivationPage';
 import { PublicContactActivationPage } from '../pages/activation/PublicContactActivationPage';
+import { PublicSelfCheckinPage } from '../pages/checkins/PublicSelfCheckinPage';
 
 export type PageKey = 'showcase' | 'dashboard' | 'retention' | 'campaigns' | 'rewards' | 'students' | 'activation' | 'checkins' | 'imports' | 'whatsapp' | 'workouts' | 'email' | 'automation' | 'reports' | 'team' | 'settings' | 'admin-messaging' | 'admin-billing';
 
@@ -39,8 +40,14 @@ function activationCodeFromHash() {
   return match?.[1] || '';
 }
 
+function selfCheckinTokenFromHash() {
+  const match = window.location.hash.match(/^#\/?checkin\/([A-Za-z0-9_-]{32,80})$/);
+  return match?.[1] || '';
+}
+
 export function App() {
   const activationCode = activationCodeFromHash();
+  const selfCheckinToken = selfCheckinTokenFromHash();
   const [page, setPage] = useState<PageKey>(pageFromHash);
   const [user, setUser] = useState<CurrentUser>();
   const [box, setBox] = useState<Box>();
@@ -68,7 +75,7 @@ export function App() {
   }
 
   useEffect(() => {
-    if (activationCode) {
+    if (activationCode || selfCheckinToken) {
       setCheckingSession(false);
       return;
     }
@@ -112,6 +119,10 @@ export function App() {
     return <PublicContactActivationPage code={activationCode} />;
   }
 
+  if (selfCheckinToken) {
+    return <PublicSelfCheckinPage token={selfCheckinToken} />;
+  }
+
   if (checkingSession) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
@@ -152,7 +163,7 @@ export function App() {
       {renderedPage === 'rewards' && <RewardsPage />}
       {renderedPage === 'students' && <StudentsPage canManagePrivacy={user.role === 'OWNER'} />}
       {renderedPage === 'activation' && user.role === 'OWNER' && <ContactActivationPage />}
-      {renderedPage === 'checkins' && <CheckinsPage />}
+      {renderedPage === 'checkins' && <CheckinsPage canManage={user.role === 'OWNER'} />}
       {renderedPage === 'imports' && <ImportsPage />}
       {renderedPage === 'whatsapp' && capabilities.whatsapp && <WhatsappPage />}
       {renderedPage === 'workouts' && capabilities.workouts && <WorkoutsPage />}
