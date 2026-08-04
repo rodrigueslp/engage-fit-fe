@@ -449,10 +449,13 @@ export type ImportHistory = {
   id: string;
   filename: string;
   source: Source;
+  status: 'processing' | 'completed' | 'failed';
   total_records: number;
   students?: number;
   checkins?: number;
   imported_at: string;
+  completed_at?: string;
+  error_code?: string;
 };
 
 export type CheckinIngestionSource = {

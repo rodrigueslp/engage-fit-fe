@@ -78,6 +78,7 @@ export function ImportsPage() {
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao importar arquivo');
+      load();
     } finally { setSubmitting(false); }
   }
 
@@ -142,9 +143,10 @@ export function ImportsPage() {
                 <div key={item.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="font-semibold text-slate-950">{item.filename}</p>
-                    <p className="text-sm text-slate-500">{item.total_records} registros · {formatDateTime(item.imported_at)}</p>
+                    <p className="text-sm text-slate-500">{importSummary(item)} · {formatDateTime(item.imported_at)}</p>
+                    {item.status === 'failed' && <p className="mt-1 text-xs font-medium text-red-700">{importFailureLabel(item.error_code)}</p>}
                   </div>
-                  <div className="flex items-center gap-2"><StatusBadge value="achieved" label="Concluída" /><StatusBadge value={item.source} label={item.source} /></div>
+                  <div className="flex items-center gap-2"><StatusBadge value={importStatusStyle(item.status)} label={importStatusLabel(item.status)} /><StatusBadge value={item.source} label={item.source} /></div>
                 </div>
               ))}
             </div>
@@ -172,4 +174,36 @@ export function ImportsPage() {
 function formatDateTime(value: string) {
   if (!value) return 'Data não informada';
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
+}
+
+function importStatusLabel(status: ImportHistory['status']) {
+  if (status === 'completed') return 'Concluída';
+  if (status === 'failed') return 'Falhou';
+  return 'Processando';
+}
+
+function importStatusStyle(status: ImportHistory['status']) {
+  if (status === 'completed') return 'achieved';
+  if (status === 'failed') return 'failed';
+  return 'running';
+}
+
+function importSummary(item: ImportHistory) {
+  if (item.status !== 'completed') return `${item.total_records} registros lidos`;
+  const checkins = item.checkins ?? 0;
+  const students = item.students;
+  const studentSummary = students === undefined ? '' : ` · ${students} alunos novos`;
+  return `${item.total_records} registros lidos · ${checkins} check-ins novos${studentSummary}`;
+}
+
+function importFailureLabel(errorCode?: string) {
+  const labels: Record<string, string> = {
+    database_parameter_limit: 'Falha ao gravar o lote de check-ins.',
+    checkin_persistence_failed: 'Falha ao gravar os check-ins.',
+    student_processing_failed: 'Falha ao reconciliar os alunos.',
+    campaign_recalculation_failed: 'Falha ao recalcular as campanhas.',
+    deadline_exceeded: 'O processamento excedeu o tempo permitido.',
+    request_canceled: 'O processamento foi interrompido.',
+  };
+  return labels[errorCode || ''] || 'Nenhum dado desta tentativa foi confirmado.';
 }
