@@ -13,6 +13,7 @@ export const navItems: NavItem[] = [
   { key: 'activation', label: 'Ativação WhatsApp', icon: QrCode, group: 'Engajamento' },
   { key: 'checkins', label: 'Check-ins', icon: Activity, group: 'Operação' },
   { key: 'imports', label: 'Importações', icon: Upload, group: 'Operação' },
+  { key: 'workouts', label: 'Treino do dia', icon: Dumbbell, group: 'Operação' },
   { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, group: 'Engajamento' },
   { key: 'automation', label: 'Automação', icon: RefreshCw, group: 'Engajamento' },
   { key: 'reports', label: 'Relatórios', icon: Dumbbell, group: 'Gestão' },

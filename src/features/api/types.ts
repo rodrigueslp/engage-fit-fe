@@ -673,6 +673,8 @@ export type AutomationSchedule = {
   updated_at: string;
 };
 
+export type WorkoutSectionType = 'warmup' | 'skill' | 'strength' | 'wod' | 'accessory' | 'cooldown' | 'other';
+
 export type Workout = {
   id: string;
   workout_date: string;
@@ -680,6 +682,17 @@ export type Workout = {
   goal: string;
   movements: string;
   coach_notes: string;
+  raw_text?: string;
+  classification?: {
+    version: string;
+    generated_by: string;
+    suggested_title: string;
+    sections: Array<{ type: WorkoutSectionType; title: string; content: string }>;
+    formats: string[];
+    duration_seconds?: number;
+    movement_mentions: string[];
+  };
+  classified_at?: string;
   status: 'draft' | 'published';
   created_at: string;
   updated_at: string;

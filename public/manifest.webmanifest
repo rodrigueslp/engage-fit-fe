@@ -1,0 +1,19 @@
+{
+  "name": "EngageFit Aluno",
+  "short_name": "EngageFit",
+  "description": "O treino do seu box, sempre com você.",
+  "start_url": "/#/athlete",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#071426",
+  "theme_color": "#071426",
+  "icons": [
+    {
+      "src": "/engagefit-favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

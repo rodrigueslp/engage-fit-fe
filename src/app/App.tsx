@@ -24,6 +24,7 @@ import { TeamPage } from '../pages/team/TeamPage';
 import { ContactActivationPage } from '../pages/activation/ContactActivationPage';
 import { PublicContactActivationPage } from '../pages/activation/PublicContactActivationPage';
 import { PublicSelfCheckinPage } from '../pages/checkins/PublicSelfCheckinPage';
+import { AthleteApp, athleteRouteFromHash } from '../pages/athlete/AthleteApp';
 
 export type PageKey = 'showcase' | 'dashboard' | 'retention' | 'campaigns' | 'rewards' | 'students' | 'activation' | 'checkins' | 'imports' | 'whatsapp' | 'workouts' | 'email' | 'automation' | 'reports' | 'team' | 'settings' | 'admin-messaging' | 'admin-billing';
 
@@ -48,6 +49,7 @@ function selfCheckinTokenFromHash() {
 export function App() {
   const activationCode = activationCodeFromHash();
   const selfCheckinToken = selfCheckinTokenFromHash();
+  const [athleteRoute, setAthleteRoute] = useState(athleteRouteFromHash);
   const [page, setPage] = useState<PageKey>(pageFromHash);
   const [user, setUser] = useState<CurrentUser>();
   const [box, setBox] = useState<Box>();
@@ -75,7 +77,7 @@ export function App() {
   }
 
   useEffect(() => {
-    if (activationCode || selfCheckinToken) {
+    if (activationCode || selfCheckinToken || athleteRoute) {
       setCheckingSession(false);
       return;
     }
@@ -83,6 +85,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (checkingSession) return;
     const disabled = (page === 'whatsapp' && !capabilities.whatsapp)
       || (page === 'activation' && !capabilities.whatsapp)
       || (page === 'automation' && !capabilities.automation)
@@ -93,7 +96,7 @@ export function App() {
       window.location.hash = 'dashboard';
       setPage('dashboard');
     }
-  }, [page, capabilities]);
+  }, [page, capabilities, checkingSession]);
 
   useEffect(() => {
     if (user?.role === 'COACH' && !coachPages.includes(page)) {
@@ -105,11 +108,16 @@ export function App() {
   useEffect(() => {
     function handleHashChange() {
       setPage(pageFromHash());
+      setAthleteRoute(athleteRouteFromHash());
     }
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  if (athleteRoute) {
+    return <AthleteApp route={athleteRoute} />;
+  }
 
   if (page === 'showcase') {
     return <ShowcasePage />;

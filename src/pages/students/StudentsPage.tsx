@@ -1,4 +1,4 @@
-import { Download, MoreHorizontal, ShieldOff } from 'lucide-react';
+import { Check, Copy, Download, MoreHorizontal, ShieldOff, Smartphone, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
@@ -20,7 +20,9 @@ export function StudentsPage({ canManagePrivacy = true }: { canManagePrivacy?: b
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-	const [processingId, setProcessingId] = useState('');
+  const [processingId, setProcessingId] = useState('');
+  const [invitation, setInvitation] = useState<{ studentName: string; url: string; expiresAt: string }>();
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     api
@@ -92,6 +94,27 @@ export function StudentsPage({ canManagePrivacy = true }: { canManagePrivacy?: b
     }
   }
 
+  async function inviteToAthleteApp(student: Student) {
+    setProcessingId(student.id);
+    setError('');
+    setCopied(false);
+    try {
+      const result = await api.createAthleteInvitation(student.id);
+      const base = `${window.location.origin}${window.location.pathname}`;
+      setInvitation({ studentName: student.name, url: `${base}#/athlete/invite/${result.token}`, expiresAt: result.expires_at });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao criar convite para o app');
+    } finally {
+      setProcessingId('');
+    }
+  }
+
+  async function copyInvitation() {
+    if (!invitation) return;
+    await navigator.clipboard.writeText(invitation.url);
+    setCopied(true);
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader title="Alunos" eyebrow="Base da academia" description="Consulte contatos, origem e preferências de comunicação de todos os alunos." />
@@ -122,6 +145,7 @@ export function StudentsPage({ canManagePrivacy = true }: { canManagePrivacy?: b
                   <label className="text-xs font-semibold text-slate-500">Preferência de contato<select className="mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-800" value={student.contact_status || 'unknown'} disabled={!canManagePrivacy || processingId === student.id || Boolean(student.anonymized_at)} onChange={(event) => void updateContact(student, event.target.value as Student['contact_status'])}><option value="unknown">Não informado</option><option value="opted_in">Autorizado</option><option value="opted_out">Não contatar</option></select></label>
                   {canManagePrivacy && <StudentPrivacyActions student={student} processing={processingId === student.id} onExport={exportData} onAnonymize={anonymize} />}
                 </div>
+                {canManagePrivacy && !student.anonymized_at && <Button type="button" variant="secondary" className="w-full gap-2" disabled={processingId === student.id} onClick={() => void inviteToAthleteApp(student)}><Smartphone className="h-4 w-4" />{processingId === student.id ? 'Criando convite...' : 'Convidar para o app'}</Button>}
               </div>
             ))}
           </div>
@@ -134,6 +158,7 @@ export function StudentsPage({ canManagePrivacy = true }: { canManagePrivacy?: b
                   <th>Telefone</th>
                   <th>Origem</th>
                   <th>Contato</th>
+                  {canManagePrivacy && <th>App do aluno</th>}
                   {canManagePrivacy && <th className="text-right">Privacidade</th>}
                 </tr>
               </thead>
@@ -156,6 +181,7 @@ export function StudentsPage({ canManagePrivacy = true }: { canManagePrivacy?: b
                         <option value="opted_out">Não contatar</option>
                       </select>
                     </td>
+                    {canManagePrivacy && <td><Button type="button" variant="secondary" className="gap-2 whitespace-nowrap" disabled={processingId === student.id || Boolean(student.anonymized_at)} onClick={() => void inviteToAthleteApp(student)}><Smartphone className="h-4 w-4" />Convidar</Button></td>}
                     {canManagePrivacy && <td>
                       <div className="flex justify-end"><StudentPrivacyActions compact student={student} processing={processingId === student.id} onExport={exportData} onAnonymize={anonymize} /></div>
                     </td>}
@@ -169,6 +195,24 @@ export function StudentsPage({ canManagePrivacy = true }: { canManagePrivacy?: b
         )}
       </CardContent>
       </Card>
+      {invitation && (
+        <div className="fixed inset-0 z-50 grid place-items-end bg-slate-950/60 p-0 backdrop-blur-sm sm:place-items-center sm:p-5" role="dialog" aria-modal="true" aria-labelledby="athlete-invite-title">
+          <section className="athlete-enter w-full max-w-md rounded-t-[28px] bg-white p-6 shadow-2xl sm:rounded-[28px]">
+            <div className="flex items-start justify-between gap-4">
+              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-orange-50 text-orange-600"><Smartphone className="h-6 w-6" /></div>
+              <button type="button" className="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-slate-600" onClick={() => setInvitation(undefined)} aria-label="Fechar"><X className="h-5 w-5" /></button>
+            </div>
+            <p className="mt-5 text-xs font-extrabold uppercase tracking-[.15em] text-orange-600">App do aluno</p>
+            <h2 id="athlete-invite-title" className="mt-1 text-2xl font-black tracking-tight text-slate-950">Convite pronto para {invitation.studentName}</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Envie este link pelo WhatsApp. O aluno cria a conta e já entra vinculado ao box, sem nenhuma ação do coach.</p>
+            <div className="mt-5 rounded-2xl bg-slate-50 p-3">
+              <p className="break-all text-xs leading-5 text-slate-600">{invitation.url}</p>
+            </div>
+            <Button type="button" className="mt-4 w-full gap-2" onClick={() => void copyInvitation()}>{copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}{copied ? 'Link copiado' : 'Copiar link do convite'}</Button>
+            <p className="mt-3 text-center text-xs text-slate-500">Válido até {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(invitation.expiresAt))}</p>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

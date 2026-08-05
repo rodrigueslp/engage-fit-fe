@@ -124,6 +124,8 @@ export const api = {
       method: 'PATCH',
     }),
   students: () => apiRequest<Student[]>('/api/v1/students'),
+  createAthleteInvitation: (studentId: string) =>
+    apiRequest<{ token: string; expires_at: string }>(`/api/v1/students/${studentId}/athlete-invitations`, { method: 'POST' }),
   publicContactActivation: (code: string) =>
     apiRequest<ContactActivationConfig>(`/api/v1/public/contact-activation/${encodeURIComponent(code)}`, { auth: false }),
   startPublicContactActivation: (code: string, payload: { name: string; source: Source; recent_checkin_date?: string; is_new_student: boolean; consent_accepted: boolean }) =>
@@ -336,12 +338,12 @@ export const api = {
   emailRecipients: (campaignId: string) => apiRequest<EmailRecipient[]>(`/api/v1/email-campaigns/${campaignId}/recipients`),
 
   workouts: () => apiRequest<Workout[]>('/api/v1/workouts'),
-  createWorkout: (payload: { workout_date: string; title: string; goal: string; movements: string; coach_notes: string; status: string }) =>
+  createWorkout: (payload: { workout_date: string; title: string; goal: string; movements: string; coach_notes: string; raw_text?: string; status: string }) =>
     apiRequest<Workout>('/api/v1/workouts', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
-  updateWorkout: (workoutId: string, payload: { workout_date: string; title: string; goal: string; movements: string; coach_notes: string; status: string }) =>
+  updateWorkout: (workoutId: string, payload: { workout_date: string; title: string; goal: string; movements: string; coach_notes: string; raw_text?: string; status: string }) =>
     apiRequest<Workout>(`/api/v1/workouts/${workoutId}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
