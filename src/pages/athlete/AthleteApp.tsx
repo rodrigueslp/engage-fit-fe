@@ -73,6 +73,19 @@ function AthleteInvitationPage({ token, onClaimed }: { token: string; onClaimed:
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError('');
+    if (!name.trim()) {
+      setError('Informe seu nome para continuar.');
+      return;
+    }
+    if (!email.trim()) {
+      setError('Informe seu melhor e-mail para continuar.');
+      return;
+    }
+    if (password.length < 12) {
+      const missing = 12 - password.length;
+      setError(`Sua senha precisa ter pelo menos 12 caracteres. ${missing === 1 ? 'Falta 1 caractere.' : `Faltam ${missing} caracteres.`}`);
+      return;
+    }
     setSubmitting(true);
     try {
       await onClaimed(await athleteApi.claim(token, { name, email, password }));
@@ -105,9 +118,12 @@ function AthleteInvitationPage({ token, onClaimed }: { token: string; onClaimed:
             <AthleteField label="Seu nome" type="text" value={name} onChange={setName} autoComplete="name" />
             <AthleteField label="Seu melhor e-mail" type="email" value={email} onChange={setEmail} autoComplete="email" placeholder="voce@exemplo.com" />
             <AthleteField label="Crie uma senha" type="password" value={password} onChange={setPassword} autoComplete="new-password" placeholder="Pelo menos 12 caracteres" />
+            <p className={`-mt-2 text-xs font-semibold ${password.length >= 12 ? 'text-emerald-600' : 'text-slate-500'}`} aria-live="polite">
+              {password.length >= 12 ? 'Senha pronta para uso.' : password.length === 0 ? 'Use pelo menos 12 caracteres.' : `${12 - password.length === 1 ? 'Falta 1 caractere' : `Faltam ${12 - password.length} caracteres`} para completar a senha.`}
+            </p>
             {error && <p role="alert" className="rounded-xl bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">{error}</p>}
-            <button className="flex min-h-13 w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-600 active:scale-[.98] disabled:opacity-60" disabled={submitting || !name.trim() || !email.trim() || password.length < 12}>
-              {submitting ? 'Preparando seu perfil...' : 'Entrar no meu box'} <ChevronRight className="h-5 w-5" />
+            <button className="flex min-h-13 w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-600 active:scale-[.98] disabled:opacity-60" disabled={submitting}>
+              {submitting ? 'Preparando seu perfil...' : 'Criar conta e entrar'} <ChevronRight className="h-5 w-5" />
             </button>
             <p className="text-center text-xs leading-5 text-slate-500">Ao continuar, sua conta será vinculada somente ao cadastro indicado por este convite.</p>
           </form>

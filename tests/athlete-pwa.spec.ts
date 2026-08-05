@@ -43,8 +43,12 @@ test('athlete claims an invitation and gets a fluid mobile workout experience', 
   await expect(page.getByRole('heading', { name: 'Seu treino começa antes da aula.' })).toBeVisible();
   await expect(page.getByText('CrossFit Aurora', { exact: true })).toBeVisible();
   await page.getByLabel('E-mail').fill('maria@example.com');
+  await page.getByLabel('Crie uma senha').fill('curta123');
+  await expect(page.getByRole('button', { name: /Criar conta e entrar/ })).toBeEnabled();
+  await page.getByRole('button', { name: /Criar conta e entrar/ }).click();
+  await expect(page.getByRole('alert')).toContainText('Faltam 4 caracteres');
   await page.getByLabel('Crie uma senha').fill('uma-senha-forte');
-  await page.getByRole('button', { name: /Entrar no meu box/ }).click();
+  await page.getByRole('button', { name: /Criar conta e entrar/ }).click();
 
   await expect(page).toHaveURL(/#\/athlete$/);
   await expect(page.getByText(/(Bom dia|Boa tarde|Boa noite), Maria/)).toBeVisible();
