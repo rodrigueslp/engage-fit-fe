@@ -1,4 +1,4 @@
-import { Activity, BarChart3, CreditCard, Dumbbell, Gift, HeartPulse, MessageCircle, QrCode, RefreshCw, Settings, ShieldCheck, Target, Upload, Users } from 'lucide-react';
+import { Activity, BarChart3, CreditCard, Dumbbell, Gift, HeartPulse, Mail, MessageCircle, QrCode, RefreshCw, Settings, ShieldCheck, Target, Upload, Users } from 'lucide-react';
 import type { PageKey } from '../../app/App';
 import type { Capabilities } from '../../features/api/types';
 
@@ -15,6 +15,7 @@ export const navItems: NavItem[] = [
   { key: 'imports', label: 'Importações', icon: Upload, group: 'Operação' },
   { key: 'workouts', label: 'Treino do dia', icon: Dumbbell, group: 'Operação' },
   { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, group: 'Engajamento' },
+  { key: 'email', label: 'E-mail', icon: Mail, group: 'Engajamento' },
   { key: 'automation', label: 'Automação', icon: RefreshCw, group: 'Engajamento' },
   { key: 'reports', label: 'Relatórios', icon: Dumbbell, group: 'Gestão' },
   { key: 'team', label: 'Equipe', icon: Users, group: 'Gestão' },
