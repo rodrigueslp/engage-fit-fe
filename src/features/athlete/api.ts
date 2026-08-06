@@ -1,4 +1,4 @@
-import type { AthleteInvitation, AthleteProfile, AthleteWorkout } from './types';
+import type { AthleteInvitation, AthletePersonalRecord, AthleteProfile, AthleteWorkout, AthleteWorkoutInsight, AthleteWorkoutResult, SaveAthleteResult } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
@@ -28,5 +28,14 @@ export const athleteApi = {
   login: (payload: { email: string; password: string }) => athleteRequest<AthleteProfile>('/api/v1/athlete/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
   me: () => athleteRequest<AthleteProfile>('/api/v1/athlete/me'),
   workouts: () => athleteRequest<AthleteWorkout[]>('/api/v1/athlete/workouts'),
+  saveResult: (workoutId: string, payload: SaveAthleteResult) => athleteRequest<{ result: AthleteWorkoutResult; possible_records: AthletePersonalRecord[] }>(`/api/v1/athlete/workouts/${workoutId}/result`, { method: 'PUT', body: JSON.stringify(payload) }, true),
+  explainWorkout: (workoutId: string) => athleteRequest<AthleteWorkoutInsight>(`/api/v1/athlete/workouts/${workoutId}/explanation`, { method: 'POST' }, true),
+  results: () => athleteRequest<AthleteWorkoutResult[]>('/api/v1/athlete/results'),
+  personalRecords: () => athleteRequest<AthletePersonalRecord[]>('/api/v1/athlete/personal-records'),
+  confirmPersonalRecord: (id: string) => athleteRequest<void>(`/api/v1/athlete/personal-records/${id}/confirm`, { method: 'POST' }, true),
+  requestPasswordReset: (email: string) => athleteRequest<void>('/api/v1/athlete/auth/password-reset', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (token: string, password: string) => athleteRequest<void>(`/api/v1/athlete/auth/password-reset/${encodeURIComponent(token)}`, { method: 'POST', body: JSON.stringify({ password }) }),
+  requestEmailVerification: () => athleteRequest<void>('/api/v1/athlete/auth/verify-email', { method: 'POST' }, true),
+  verifyEmail: (token: string) => athleteRequest<void>(`/api/v1/athlete/auth/verify-email/${encodeURIComponent(token)}`, { method: 'POST' }),
   logout: () => athleteRequest<void>('/api/v1/athlete/auth/logout', { method: 'POST' }, true),
 };

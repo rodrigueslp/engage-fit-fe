@@ -5,10 +5,11 @@ const profile = {
   id: 'athlete-1',
   name: 'Maria Silva',
   email: 'maria@example.com',
+  email_verified: false,
   memberships: [{ id: 'membership-1', box_id: 'box-1', box_name: 'CrossFit Aurora', joined_at: '2026-08-05T12:00:00Z' }],
 };
 const workout = {
-  id: 'workout-1', box_id: 'box-1', box_name: 'CrossFit Aurora', workout_date: '2026-08-05', title: "Snatch + AMRAP 18'",
+  id: 'workout-1', box_id: 'box-1', box_name: 'CrossFit Aurora', membership_id: 'membership-1', workout_date: '2026-08-05', title: "Snatch + AMRAP 18'",
   goal: '', movements: 'Snatch, Double Unders, Dumbbell Snatches, Wall Walks', coach_notes: '', raw_text: 'WARM UP\n\nPassagem Técnica\n\nWORKOUT OF THE DAY\n\nAMRAP 18\'\n90 Double Unders', status: 'published',
   classification: {
     version: 'rules-v1', generated_by: 'rules', suggested_title: "Snatch + AMRAP 18'", formats: ['amrap', 'max_effort'], duration_seconds: 1080,
@@ -20,6 +21,7 @@ const workout = {
     ],
   },
   created_at: '2026-08-05T12:00:00Z', updated_at: '2026-08-05T12:00:00Z',
+  personalization: { summary: 'Use seus resultados anteriores como referência.', pacing: 'Comece em ritmo repetível.', guidance: [], generated_by: 'rules-v1' },
 };
 
 test('athlete claims an invitation and gets a fluid mobile workout experience', async ({ page }) => {
@@ -67,6 +69,32 @@ test('production manifest describes an installable standalone athlete app', asyn
   expect(response.ok()).toBeTruthy();
   const manifest = await response.json();
   expect(manifest).toMatchObject({ name: 'EngageFit Aluno', start_url: '/#/athlete', display: 'standalone', theme_color: '#071426' });
+});
+
+test('athlete records a result and confirms the detected PR', async ({ page }) => {
+  let saved = false; let confirmed = false;
+  const record = { id:'pr-1',movement_key:'snatch',movement_name:'Snatch',metric:'load',best_value:62.5,unit:'kg',status:'estimated',source_result_id:'result-1',achieved_at:'2026-08-05T12:00:00Z' };
+  const result = { id:'result-1',workout_id:'workout-1',membership_id:'membership-1',scale:'rx',entries:[{section_index:0,section_type:'warmup',movement:'Snatch',score_type:'load',load_kg:62.5}],rpe:8,notes:'Boa técnica',performed_at:'2026-08-05T12:00:00Z',updated_at:'2026-08-05T12:00:00Z' };
+  await page.route('**/api/v1/**', async (route) => { const request=route.request();const path=new URL(request.url()).pathname;
+    if(path==='/api/v1/athlete/me')return route.fulfill({json:profile});
+    if(path==='/api/v1/athlete/workouts')return route.fulfill({json:[{...workout,...(saved?{result}:{})}]});
+    if(path==='/api/v1/athlete/personal-records')return route.fulfill({json:saved?[{...record,status:confirmed?'confirmed':'estimated'}]:[]});
+    if(path==='/api/v1/athlete/workouts/workout-1/result'&&request.method()==='PUT'){const payload=request.postDataJSON();expect(payload.scale).toBe('rx');expect(payload.entries[0]).toMatchObject({movement:'Snatch',score_type:'load',load_kg:62.5});saved=true;return route.fulfill({json:{result,possible_records:[record]}});}
+    if(path==='/api/v1/athlete/personal-records/pr-1/confirm'){confirmed=true;return route.fulfill({status:204,body:''});}
+    return route.fulfill({status:404,json:{message:'not found'}});
+  });
+  await page.goto('/#/athlete');
+  await page.getByRole('button',{name:'Registrar meu resultado'}).click();
+  await page.getByRole('button',{name:'RX',exact:true}).click();
+  await page.getByRole('dialog').getByRole('combobox').nth(1).selectOption('load');
+  await page.getByLabel('Carga em kg').fill('62.5');
+  await page.getByLabel(/Observações/).fill('Boa técnica');
+  await page.getByRole('button',{name:'Salvar no meu histórico'}).click();
+  await expect(page.getByText('1 possível PR encontrado')).toBeVisible();
+  await page.getByRole('button',{name:'PRs',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Snatch'})).toBeVisible();
+  await page.getByRole('button',{name:'Confirmar como meu PR'}).click();
+  await expect(page.getByText('PR confirmado por você')).toBeVisible();
 });
 
 test('owner creates a student app invitation with one action', async ({ page, context }) => {

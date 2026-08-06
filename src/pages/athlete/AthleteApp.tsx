@@ -3,8 +3,9 @@ import { FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
 import { athleteApi } from '../../features/athlete/api';
 import type { AthleteInvitation, AthleteProfile, AthleteWorkout } from '../../features/athlete/types';
 import type { WorkoutSectionType } from '../../features/api/types';
+import { AthleteDashboard } from './AthleteDashboard';
 
-type AthleteRoute = { kind: 'invite'; token: string } | { kind: 'login' } | { kind: 'app' };
+type AthleteRoute = { kind: 'invite'; token: string } | { kind: 'login' } | { kind: 'reset'; token: string } | { kind: 'verify'; token: string } | { kind: 'app' };
 type AthleteTab = 'today' | 'history' | 'profile';
 
 export function AthleteApp({ route }: { route: AthleteRoute }) {
@@ -50,8 +51,10 @@ export function AthleteApp({ route }: { route: AthleteRoute }) {
 
   if (route.kind === 'invite') return <AthleteInvitationPage token={route.token} onClaimed={openApp} />;
   if (route.kind === 'login') return <AthleteLoginPage onLogin={openApp} />;
+  if (route.kind === 'reset') return <AthleteResetPasswordPage token={route.token} />;
+  if (route.kind === 'verify') return <AthleteVerifyEmailPage token={route.token} />;
   if (loading || !profile) return <AthleteSplash />;
-  return <AthleteHome profile={profile} workouts={workouts} globalError={error} />;
+  return <AthleteDashboard profile={profile} initialWorkouts={workouts} />;
 }
 
 function AthleteInvitationPage({ token, onClaimed }: { token: string; onClaimed: (profile: AthleteProfile) => Promise<void> }) {
@@ -139,6 +142,8 @@ function AthleteLoginPage({ onLogin }: { onLogin: (profile: AthleteProfile) => P
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [forgot, setForgot] = useState(false);
+  const [sent, setSent] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -162,15 +167,29 @@ function AthleteLoginPage({ onLogin }: { onLogin: (profile: AthleteProfile) => P
           <h1 className="mt-3 text-4xl font-black tracking-[-0.04em] text-white">Bom ter você de volta.</h1>
           <p className="mt-3 text-slate-300">Entre para conferir o treino do seu box.</p>
         </div>
-        <form className="space-y-4 rounded-[28px] bg-white p-6 shadow-2xl shadow-black/30" onSubmit={submit}>
+        <form className="space-y-4 rounded-[28px] bg-white p-6 shadow-2xl shadow-black/30" onSubmit={forgot ? (event) => { event.preventDefault(); setError(''); athleteApi.requestPasswordReset(email).then(() => setSent(true)).catch((err) => setError(err instanceof Error ? err.message : 'Não foi possível enviar.')); } : submit}>
           <AthleteField label="E-mail" type="email" value={email} onChange={setEmail} autoComplete="email" />
-          <AthleteField label="Senha" type="password" value={password} onChange={setPassword} autoComplete="current-password" />
+          {!forgot && <AthleteField label="Senha" type="password" value={password} onChange={setPassword} autoComplete="current-password" />}
+          {sent && <p className="rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">Se a conta existir, o link de recuperação foi enviado.</p>}
           {error && <p role="alert" className="rounded-xl bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">{error}</p>}
-          <button className="min-h-13 w-full rounded-2xl bg-orange-500 px-4 py-3.5 text-sm font-extrabold text-white transition hover:bg-orange-600 active:scale-[.98] disabled:opacity-60" disabled={submitting}>{submitting ? 'Entrando...' : 'Entrar'}</button>
+          <button className="min-h-13 w-full rounded-2xl bg-orange-500 px-4 py-3.5 text-sm font-extrabold text-white transition hover:bg-orange-600 active:scale-[.98] disabled:opacity-60" disabled={submitting}>{forgot ? 'Enviar link de recuperação' : submitting ? 'Entrando...' : 'Entrar'}</button>
+          <button type="button" className="w-full text-sm font-bold text-orange-600" onClick={() => { setForgot(!forgot); setSent(false); setError(''); }}>{forgot ? 'Voltar para o login' : 'Esqueci minha senha'}</button>
         </form>
       </div>
     </AthleteAuthShell>
   );
+}
+
+function AthleteResetPasswordPage({ token }: { token: string }) {
+  const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [done, setDone] = useState(false);
+  async function submit(event: FormEvent) { event.preventDefault(); if (password.length < 12) { setError('Use uma senha com pelo menos 12 caracteres.'); return; } try { await athleteApi.resetPassword(token, password); setDone(true); } catch (err) { setError(err instanceof Error ? err.message : 'Link inválido ou expirado.'); } }
+  return <AthleteAuthShell><div className="rounded-[28px] bg-white p-6"><p className="text-xs font-black uppercase tracking-wide text-orange-600">Segurança</p><h1 className="mt-1 text-2xl font-black">Crie uma nova senha</h1>{done ? <><p className="mt-4 text-emerald-700">Senha atualizada. Entre novamente em todos os seus dispositivos.</p><button onClick={() => navigateAthlete('login')} className="mt-5 w-full rounded-2xl bg-orange-500 py-3 font-bold text-white">Ir para o login</button></> : <form className="mt-5 space-y-4" onSubmit={submit}><AthleteField label="Nova senha" type="password" value={password} onChange={setPassword} autoComplete="new-password" placeholder="Pelo menos 12 caracteres" />{error && <p className="text-sm font-bold text-rose-700">{error}</p>}<button className="w-full rounded-2xl bg-orange-500 py-3 font-bold text-white">Atualizar senha</button></form>}</div></AthleteAuthShell>;
+}
+
+function AthleteVerifyEmailPage({ token }: { token: string }) {
+  const [status, setStatus] = useState('Confirmando seu e-mail...');
+  useEffect(() => { athleteApi.verifyEmail(token).then(() => setStatus('E-mail confirmado com sucesso.')).catch((err) => setStatus(err instanceof Error ? err.message : 'Link inválido ou expirado.')); }, [token]);
+  return <AthleteAuthShell><div className="rounded-[28px] bg-white p-6"><ShieldCheck className="h-10 w-10 text-emerald-600" /><h1 className="mt-4 text-2xl font-black">Verificação da conta</h1><p className="mt-3 text-slate-600">{status}</p><button onClick={() => navigateAthlete('login')} className="mt-5 font-bold text-orange-600">Ir para o app</button></div></AthleteAuthShell>;
 }
 
 function AthleteHome({ profile, workouts, globalError }: { profile: AthleteProfile; workouts: AthleteWorkout[]; globalError: string }) {
@@ -295,6 +314,10 @@ export function athleteRouteFromHash(): AthleteRoute | null {
   const hash = window.location.hash.replace(/^#\/?/, '');
   const invite = hash.match(/^athlete\/invite\/([A-Za-z0-9_-]{32,80})$/);
   if (invite) return { kind: 'invite', token: invite[1] };
+  const reset = hash.match(/^athlete\/reset-password\/([A-Za-z0-9_-]{32,80})$/);
+  if (reset) return { kind: 'reset', token: reset[1] };
+  const verify = hash.match(/^athlete\/verify-email\/([A-Za-z0-9_-]{32,80})$/);
+  if (verify) return { kind: 'verify', token: verify[1] };
   if (hash === 'athlete/login') return { kind: 'login' };
   if (hash === 'athlete') return { kind: 'app' };
   return null;

@@ -1,4 +1,4 @@
-import { Check, Copy, Download, MoreHorizontal, ShieldOff, Smartphone, X } from 'lucide-react';
+import { Check, Copy, Download, MessageCircle, MoreHorizontal, ShieldOff, Smartphone, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/State';
@@ -21,7 +21,7 @@ export function StudentsPage({ canManagePrivacy = true }: { canManagePrivacy?: b
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [processingId, setProcessingId] = useState('');
-  const [invitation, setInvitation] = useState<{ studentName: string; url: string; expiresAt: string }>();
+  const [invitation, setInvitation] = useState<{ studentName: string; phone: string; url: string; expiresAt: string }>();
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -101,7 +101,7 @@ export function StudentsPage({ canManagePrivacy = true }: { canManagePrivacy?: b
     try {
       const result = await api.createAthleteInvitation(student.id);
       const base = `${window.location.origin}${window.location.pathname}`;
-      setInvitation({ studentName: student.name, url: `${base}#/athlete/invite/${result.token}`, expiresAt: result.expires_at });
+      setInvitation({ studentName: student.name, phone: student.phone, url: `${base}#/athlete/invite/${result.token}`, expiresAt: result.expires_at });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao criar convite para o app');
     } finally {
@@ -209,6 +209,7 @@ export function StudentsPage({ canManagePrivacy = true }: { canManagePrivacy?: b
               <p className="break-all text-xs leading-5 text-slate-600">{invitation.url}</p>
             </div>
             <Button type="button" className="mt-4 w-full gap-2" onClick={() => void copyInvitation()}>{copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}{copied ? 'Link copiado' : 'Copiar link do convite'}</Button>
+            <a className="mt-2 flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 text-sm font-bold text-white hover:bg-emerald-700" href={`https://wa.me/${whatsappPhone(invitation.phone)}?text=${encodeURIComponent(`Olá, ${invitation.studentName.split(/\s+/)[0]}! Este é seu convite para acessar treinos, resultados e evolução no EngageFit: ${invitation.url}`)}`} target="_blank" rel="noreferrer"><MessageCircle className="h-4 w-4" />Enviar diretamente pelo WhatsApp</a>
             <p className="mt-3 text-center text-xs text-slate-500">Válido até {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(invitation.expiresAt))}</p>
           </section>
         </div>
@@ -216,6 +217,8 @@ export function StudentsPage({ canManagePrivacy = true }: { canManagePrivacy?: b
     </div>
   );
 }
+
+function whatsappPhone(value: string) { const digits = value.replace(/\D/g, ''); return digits.length === 10 || digits.length === 11 ? `55${digits}` : digits; }
 
 function StudentPrivacyActions({ student, processing, compact = false, onExport, onAnonymize }: { student: Student; processing: boolean; compact?: boolean; onExport: (student: Student) => Promise<void>; onAnonymize: (student: Student) => Promise<void> }) {
   return (
