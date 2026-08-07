@@ -1,4 +1,4 @@
-import { Activity, CalendarDays, Gauge, QrCode, UserCheck, Users } from 'lucide-react';
+import { Activity, CalendarDays, Gauge, QrCode, UserCheck, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { PageHeader } from '../../components/common/PageHeader';
@@ -35,6 +35,7 @@ export function CheckinsPage({ canManage = true }: { canManage?: boolean }) {
   const [session, setSession] = useState<SelfCheckinSession>();
   const [operation, setOperation] = useState('');
   const [notice, setNotice] = useState('');
+  const [operationsOpen, setOperationsOpen] = useState(false);
   const selfCheckinURL = session?.token ? `${window.location.origin}${window.location.pathname}#/checkin/${session.token}` : '';
 
   async function load() {
@@ -118,6 +119,7 @@ export function CheckinsPage({ canManage = true }: { canManage?: boolean }) {
         title="Check-ins"
         eyebrow="Frequência dos alunos"
         description="Consulte a quantidade e o período de frequência de cada aluno."
+        actions={canManage ? <Button type="button" onClick={() => setOperationsOpen(true)}><UserCheck className="h-4 w-4" />Registrar check-in</Button> : undefined}
       />
 
       {error && <ErrorState message={error} />}
@@ -233,18 +235,77 @@ export function CheckinsPage({ canManage = true }: { canManage?: boolean }) {
         </CardContent>
       </Card>
 
-      {canManage && <section className="space-y-3">
-        <div>
-          <h2 className="text-base font-bold text-slate-950">Registrar presença</h2>
-          <p className="text-sm text-slate-500">Use estas opções quando precisar registrar um check-in do plano da academia.</p>
+      {operationsOpen && <CheckinOperationsModal
+        boxMembers={boxMembers}
+        manualStudentId={manualStudentId}
+        manualDate={manualDate}
+        operation={operation}
+        session={session}
+        selfCheckinURL={selfCheckinURL}
+        onClose={() => setOperationsOpen(false)}
+        onManualStudentChange={setManualStudentId}
+        onManualDateChange={setManualDate}
+        onManualSubmit={createManualCheckin}
+        onCreateSession={() => void createSession()}
+      />}
+      {selectedStudent && <StudentAttendancePanel student={{ id: selectedStudent.student_id, name: selectedStudent.student_name, phone: selectedStudent.student_phone, source: selectedStudent.source }} onClose={() => setSelectedStudent(undefined)} />}
+    </div>
+  );
+}
+
+function CheckinOperationsModal({
+  boxMembers,
+  manualStudentId,
+  manualDate,
+  operation,
+  session,
+  selfCheckinURL,
+  onClose,
+  onManualStudentChange,
+  onManualDateChange,
+  onManualSubmit,
+  onCreateSession,
+}: {
+  boxMembers: Student[];
+  manualStudentId: string;
+  manualDate: string;
+  operation: string;
+  session?: SelfCheckinSession;
+  selfCheckinURL: string;
+  onClose: () => void;
+  onManualStudentChange: (value: string) => void;
+  onManualDateChange: (value: string) => void;
+  onManualSubmit: (event: React.FormEvent) => void;
+  onCreateSession: () => void;
+}) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-0 backdrop-blur-sm sm:items-center sm:p-5" role="dialog" aria-modal="true" aria-labelledby="checkin-operations-title">
+      <button type="button" className="absolute inset-0 cursor-default" aria-label="Fechar registro de check-in" onClick={onClose} />
+      <div className="relative max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-6">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-accent-dark">Operação da recepção</p>
+            <h2 id="checkin-operations-title" className="mt-1 text-lg font-bold text-slate-950">Registrar check-in</h2>
+            <p className="mt-1 text-sm text-slate-500">Escolha como deseja registrar a presença de um aluno do plano da academia.</p>
+          </div>
+          <button type="button" className="rounded-md p-2 text-slate-500 hover:bg-slate-100" onClick={onClose} aria-label="Fechar"><X className="h-5 w-5" /></button>
         </div>
-        <div className="grid gap-5 xl:grid-cols-2">
+
+        <div className="grid gap-4 p-5 sm:p-6">
           <Card>
             <CardHeader><h3 className="flex items-center gap-2 text-base font-bold text-slate-950"><UserCheck className="h-5 w-5 text-accent" />Check-in manual</h3><p className="mt-1 text-sm text-slate-500">Use quando a recepção confirmar a presença. Há limite de um check-in por aluno por dia.</p></CardHeader>
             <CardContent>
-              <form className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_160px_auto] sm:items-end" onSubmit={createManualCheckin}>
-                <label className="space-y-1 text-xs font-semibold text-slate-500">Aluno<select className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm" value={manualStudentId} onChange={(event) => setManualStudentId(event.target.value)} required><option value="">Selecione</option>{boxMembers.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}</select></label>
-                <label className="space-y-1 text-xs font-semibold text-slate-500">Data<Input type="date" max={localDate(new Date())} value={manualDate} onChange={(event) => setManualDate(event.target.value)} required /></label>
+              <form className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_160px_auto] sm:items-end" onSubmit={onManualSubmit}>
+                <label className="space-y-1 text-xs font-semibold text-slate-500">Aluno<select className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm" value={manualStudentId} onChange={(event) => onManualStudentChange(event.target.value)} required><option value="">Selecione</option>{boxMembers.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}</select></label>
+                <label className="space-y-1 text-xs font-semibold text-slate-500">Data<Input type="date" max={localDate(new Date())} value={manualDate} onChange={(event) => onManualDateChange(event.target.value)} required /></label>
                 <Button disabled={!manualStudentId || operation === 'manual'}>{operation === 'manual' ? 'Registrando…' : 'Registrar'}</Button>
               </form>
               {boxMembers.length === 0 && <p className="mt-3 text-xs text-amber-700">Nenhum aluno do plano da academia está ativado. O aluno deve escolher “Plano da academia” no QR de entrada e confirmar pelo WhatsApp.</p>}
@@ -254,13 +315,11 @@ export function CheckinsPage({ canManage = true }: { canManage?: boolean }) {
           <Card>
             <CardHeader><h3 className="flex items-center gap-2 text-base font-bold text-slate-950"><QrCode className="h-5 w-5 text-accent" />QR Code de check-in</h3><p className="mt-1 text-sm text-slate-500">Exiba na recepção. Cada código vale por 10 minutos e funciona somente para alunos do plano da academia já ativados.</p></CardHeader>
             <CardContent>
-              {selfCheckinURL ? <div className="flex flex-col gap-4 sm:flex-row sm:items-center"><div className="w-fit rounded-xl border border-slate-200 bg-white p-3"><QRCodeSVG value={selfCheckinURL} size={160} level="M" /></div><div className="min-w-0 space-y-3"><p className="text-sm font-semibold text-slate-700">Válido até {new Date(session!.expires_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p><Button type="button" variant="secondary" disabled={operation === 'qr'} onClick={() => void createSession()}>Gerar novo QR</Button></div></div> : <Button type="button" className="w-full sm:w-auto" disabled={operation === 'qr'} onClick={() => void createSession()}><QrCode className="h-4 w-4" />{operation === 'qr' ? 'Gerando…' : 'Gerar QR de check-in'}</Button>}
+              {selfCheckinURL && session ? <div className="flex flex-col gap-4 sm:flex-row sm:items-center"><div className="w-fit rounded-xl border border-slate-200 bg-white p-3"><QRCodeSVG value={selfCheckinURL} size={160} level="M" /></div><div className="min-w-0 space-y-3"><p className="text-sm font-semibold text-slate-700">Válido até {new Date(session.expires_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p><Button type="button" variant="secondary" disabled={operation === 'qr'} onClick={onCreateSession}>Gerar novo QR</Button></div></div> : <Button type="button" className="w-full sm:w-auto" disabled={operation === 'qr'} onClick={onCreateSession}><QrCode className="h-4 w-4" />{operation === 'qr' ? 'Gerando…' : 'Gerar QR de check-in'}</Button>}
             </CardContent>
           </Card>
         </div>
-      </section>}
-
-      {selectedStudent && <StudentAttendancePanel student={{ id: selectedStudent.student_id, name: selectedStudent.student_name, phone: selectedStudent.student_phone, source: selectedStudent.source }} onClose={() => setSelectedStudent(undefined)} />}
+      </div>
     </div>
   );
 }
